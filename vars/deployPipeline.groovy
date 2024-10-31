@@ -13,17 +13,26 @@ def checkoutFromGit(String branch, String repoUrl, String credentialsId) {
 }
 
 def buildDockerImage(String imageName) {
-    sh "docker build -t ${imageName}:latest ."
+    executeCommand("docker build -t ${imageName}:latest .")
 }
 
 def removeContainer(String containerName) {
-    sh "docker rm -f ${containerName} || true"
+    executeCommand("docker rm -f ${containerName} || true")
 }
 
 def deployWithDockerCompose(String envVariables = '') {
-    sh "${envVariables} docker compose up -d"
+    executeCommand("${envVariables} docker compose up -d")
 }
 
 def deleteUnusedDockerImages() {
-    sh "docker image prune -af"
+    executeCommand("docker image prune -af")
+}
+
+// Helper method to execute commands conditionally based on the OS
+def executeCommand(String command) {
+    if (isUnix()) {
+        sh command
+    } else {
+        bat command
+    }
 }
