@@ -21,7 +21,7 @@ def removeContainer(String containerName) {
 }
 
 def deployWithDockerCompose(String envVariables = '') {
-    executeCommand("${envVariables} docker compose up -d")
+    executeCommand("${envVariables} docker-compose up -d")
 }
 
 def deleteUnusedDockerImages() {
