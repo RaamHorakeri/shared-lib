@@ -1,32 +1,7 @@
-def call(Map config = [:]) {
-    // Debugging: Print out the received configuration for verification
-    echo "Branch: ${config.branch}"
-    echo "Image Name: ${config.imageName}"
-    echo "Container Name: ${config.containerName}"
-    echo "Environment Variables: ${config.envVariables}"
-
-    // Checkout the code from the specified branch
-    checkoutFromGit(config.branch)
-
-    // Build the Docker image
-    buildDockerImage(config.imageName)
-
-    // Remove any existing Docker container
-    removeContainer(config.containerName)
-
-    // Deploy the application using Docker Compose
-    deployWithDockerCompose(config.envVariables)
-
-    // Clean up unused Docker images
-    deleteUnusedDockerImages()
-}
-
+// Define your shared library functions
 def checkoutFromGit(String branch) {
-    def repoUrl = 'https://github.com/RaamHorakeri/public-web.git'
-    def credentialsId = 'git'
-    
     // Perform checkout
-    git branch: branch, credentialsId: credentialsId, url: repoUrl
+    git branch: branch, credentialsId: GIT_CREDENTIALS_ID, url: REPO_URL
 }
 
 def buildDockerImage(String imageName) {
