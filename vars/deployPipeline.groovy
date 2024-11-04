@@ -1,60 +1,91 @@
-def checkoutFromGit(String branch) {
-    try {
-        // Perform checkout
-        git branch: branch, credentialsId: env.GIT_CREDENTIALS_ID, url: env.REPO_URL
-        echo "Checked out branch: ${branch}"
-    } catch (Exception e) {
-        error "Failed to checkout branch: ${branch}. Error: ${e.message}"
-    }
-}
+// vars/falcon.groovy
+ 
+def checkoutFromGit(String branch, String repoUrl, String credentialsId) {
 
+    try {
+
+        checkout([
+
+            $class: 'GitSCM',
+
+            branches: [[name: "*/${branch}"]],
+
+            userRemoteConfigs: [[url: repoUrl, credentialsId: credentialsId]]
+
+        ])
+
+        echo "Successfully checked out branch ${branch} from ${repoUrl}"
+
+    } catch (Exception e) {
+
+        error("Checkout failed: ${e.message}")
+
+    }
+
+}
+ 
 def buildDockerImage(String imageName) {
-    try {
-        // Build the Docker image using the specified name
-        executeCommand("docker build -t ${imageName}:latest .")
-        echo "Docker image built: ${imageName}:latest"
-    } catch (Exception e) {
-        error "Failed to build Docker image: ${imageName}. Error: ${e.message}"
-    }
-}
 
+    try {
+
+        sh "docker build -t ${imageName}:latest ."
+
+        echo "Docker image ${imageName}:latest built successfully"
+
+    } catch (Exception e) {
+
+        error("Building Docker image failed: ${e.message}")
+
+    }
+
+}
+ 
 def removeContainer(String containerName) {
-    try {
-        // Remove the specified container forcefully
-        executeCommand("docker rm -f ${containerName} || true")
-        echo "Removed container: ${containerName}"
-    } catch (Exception e) {
-        error "Failed to remove container: ${containerName}. Error: ${e.message}"
-    }
-}
 
-def deployWithDockerCompose(String envVariables = '') {
     try {
-        // Construct the command based on whether environment variables are provided
-        def command = envVariables ? "${envVariables} docker-compose up -d" : "docker-compose up -d"
-        executeCommand(command)
-        echo "Deployment initiated with Docker Compose."
-    } catch (Exception e) {
-        error "Failed to deploy with Docker Compose. Error: ${e.message}"
-    }
-}
 
+        sh "docker rm -f ${containerName}"
+
+        echo "Existing container ${containerName} removed successfully"
+
+    } catch (Exception e) {
+
+        echo "No existing container found or error removing: ${e.message}"
+
+    }
+
+}
+ 
+def deployWithDockerCompose() {
+
+    try {
+
+        sh "docker-compose up -d --build"
+
+        echo "Deployment with Docker Compose completed successfully"
+
+    } catch (Exception e) {
+
+        error("Deployment with Docker Compose failed: ${e.message}")
+
+    }
+
+}
+ 
 def deleteUnusedDockerImages() {
+
     try {
-        // Clean up unused Docker images
-        executeCommand("docker image prune -af")
-        echo "Deleted unused Docker images."
+
+        sh "docker image prune -f"
+
+        echo "Unused Docker images deleted successfully"
+
     } catch (Exception e) {
-        error "Failed to delete unused Docker images. Error: ${e.message}"
+
+        echo "Error deleting unused images: ${e.message}"
+
     }
+
 }
 
-// Helper method to execute commands conditionally based on the OS
-def executeCommand(String command) {
-    echo "Executing command: ${command}"
-    if (isUnix()) {
-        sh command
-    } else {
-        bat command
-    }
-}
+ 
