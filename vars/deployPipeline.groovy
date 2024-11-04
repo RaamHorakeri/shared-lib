@@ -1,14 +1,17 @@
 // vars/deployPipeline.groovy
 
 def call(Map config = [:]) {
-    checkoutFromGit(config.branch, config.repoUrl, config.credentialsId)
+    checkoutFromGit(config.branch)
     buildDockerImage(config.imageName)
     removeContainer(config.containerName)
     deployWithDockerCompose(config.envVariables)
     deleteUnusedDockerImages()
 }
 
-def checkoutFromGit(String branch, String repoUrl, String credentialsId) {
+def checkoutFromGit(String branch) {
+    def repoUrl = 'https://github.com/RaamHorakeri/public-web.git'
+    def credentialsId = 'git'
+    
     git branch: branch, credentialsId: credentialsId, url: repoUrl
 }
 
