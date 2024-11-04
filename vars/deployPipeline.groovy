@@ -1,6 +1,6 @@
 def call() {
     pipeline {
-        agent { label 'staging.enfec.cloud' }
+        agent any
  
         stages {
             stage('Checkout') {
