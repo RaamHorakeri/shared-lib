@@ -1,6 +1,7 @@
 package vars
 
 def checkoutFromGit(String branch, String repoUrl, String credentialsId) {
+    echo "Checking out branch ${branch} from ${repoUrl}"
     checkout([
         $class: 'GitSCM',
         branches: [[name: "*/${branch}"]],
@@ -9,21 +10,41 @@ def checkoutFromGit(String branch, String repoUrl, String credentialsId) {
 }
 
 def buildDockerImage(String imageName) {
-    // Use the Docker command directly without nohup
-    sh "docker build -t ${imageName}:latest ."
+    try {
+        echo "Building Docker image ${imageName}:latest"
+        bat "docker build -t ${imageName}:latest ."
+    } catch (Exception e) {
+        echo "Failed to build Docker image: ${e.message}"
+        throw e
+    }
 }
 
 def removeContainer(String containerName) {
-    // Forcibly remove the container if it exists
-    sh "docker rm -f ${containerName} || true"
+    try {
+        echo "Removing existing container ${containerName} if it exists"
+        bat "docker rm -f ${containerName} || exit 0"
+    } catch (Exception e) {
+        echo "Failed to remove container: ${e.message}"
+        throw e
+    }
 }
 
 def deployWithDockerCompose() {
-    // Use docker-compose directly, make sure docker-compose is installed
-    sh "docker-compose up -d"
+    try {
+        echo "Deploying with Docker Compose"
+        bat "docker-compose up -d"
+    } catch (Exception e) {
+        echo "Deployment failed: ${e.message}"
+        throw e
+    }
 }
 
 def deleteUnusedDockerImages() {
-    // Prune unused images
-    sh "docker image prune -f"
+    try {
+        echo "Deleting unused Docker images"
+        bat "docker image prune -f"
+    } catch (Exception e) {
+        echo "Failed to delete unused images: ${e.message}"
+        throw e
+    }
 }
