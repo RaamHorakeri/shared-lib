@@ -3,6 +3,7 @@ def call(Map config = [:]) {
     echo "Branch: ${config.branch}"
     echo "Image Name: ${config.imageName}"
     echo "Container Name: ${config.containerName}"
+    echo "Environment Variables: ${config.envVariables}"
 
     // Checkout the code from the specified branch
     checkoutFromGit(config.branch)
