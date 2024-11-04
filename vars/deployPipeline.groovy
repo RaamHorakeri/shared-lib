@@ -32,15 +32,15 @@ def removeContainer(String containerName) {
 def deployWithDockerCompose(Map<String, String> envVars) {
     try {
         echo "Deploying with Docker Compose"
-        
+
         // Check if envVars map is empty
         if (envVars.isEmpty()) {
             // No environment variables, just run docker-compose up -d
-            sh "docker-compose up -d"
+            bat "docker-compose up -d"
         } else {
             // Construct the environment variable string
             def envVarString = envVars.collect { key, value -> "${key}=${value}" }.join(' ')
-            sh "${envVarString} docker-compose up -d"
+            bat "${envVarString} docker-compose up -d"
         }
     } catch (Exception e) {
         echo "Deployment failed: ${e.message}"
