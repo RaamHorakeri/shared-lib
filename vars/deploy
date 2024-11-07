@@ -1,0 +1,23 @@
+// vars/deployPipeline.groovy
+
+def deploy() {
+    stage('Checkout') {
+        checkoutFromGit('staging', 'https://github.com/RaamHorakeri/public-web.git', 'git')
+    }
+    
+    stage('Build Docker Image') {
+        buildDockerImage('public-web')
+    }
+    
+    stage('Remove Existing Container') {
+        removeContainer('public-web')
+    }
+    
+    stage('Deploy with Docker Compose') {
+        deployWithDockerCompose([:]) // No environment variables needed in this example
+    }
+    
+    stage('Deleting Unused Docker Images') {
+        deleteUnusedDockerImages()
+    }
+}
