@@ -1,23 +1,58 @@
-// vars/deployPipeline.groovy
+// vars/deploy.groovy
 
 def deploy() {
-    stage('Checkout') {
-        checkoutFromGit('staging', 'https://github.com/RaamHorakeri/public-web.git', 'git')
-    }
-    
-    stage('Build Docker Image') {
-        buildDockerImage('public-web')
-    }
-    
-    stage('Remove Existing Container') {
-        removeContainer('public-web')
-    }
-    
-    stage('Deploy with Docker Compose') {
-        deployWithDockerCompose([:]) // No environment variables needed in this example
-    }
-    
-    stage('Deleting Unused Docker Images') {
-        deleteUnusedDockerImages()
+    pipeline {
+        agent any
+
+        stages {
+            stage('Checkout') {
+                steps {
+                    script {
+                        checkoutFromGit('staging', 'git@github.com:eskeon/public-web.git', 'git.public-web-staging.enfec.cloud')
+                    }
+                }
+            }
+
+            stage('Build Docker Image') {
+                steps {
+                    script {
+                        buildDockerImage('public-web')
+                    }
+                }
+            }
+
+            stage('Remove Existing Container') {
+                steps {
+                    script {
+                        removeContainer('public-web')
+                    }
+                }
+            }
+
+            stage('Deploy with Docker Compose') {
+                steps {
+                    script {
+                        deployWithDockerCompose([:]) // No environment variables needed
+                    }
+                }
+            }
+
+            stage('Deleting Unused Docker Images') {
+                steps {
+                    script {
+                        deleteUnusedDockerImages()
+                    }
+                }
+            }
+        }
+
+        post {
+            success {
+                echo 'Deployment successful!'
+            }
+            failure {
+                echo 'Deployment failed!'
+            }
+        }
     }
 }
