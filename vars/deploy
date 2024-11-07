@@ -8,7 +8,7 @@ def deploy() {
             stage('Checkout') {
                 steps {
                     script {
-                        checkoutFromGit('staging', 'git@github.com:eskeon/public-web.git', 'git.public-web-staging.enfec.cloud')
+                        checkoutFromGit('staging', 'https://github.com/RaamHorakeri/public-web.git', 'git')
                     }
                 }
             }
