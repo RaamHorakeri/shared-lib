@@ -4,7 +4,7 @@ return [
             environments: [
                 dev: [
                     agentName: '',
-                    repoUrl: 'git@github.com:eskeon/public-web.git',
+                    repoUrl: 'https://github.com/eskeon/public-web.git',
                     branch: 'staging',
                     credentialsId: 'git-eskeon-creds',
                     envVars: [
