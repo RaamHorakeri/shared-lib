@@ -22,7 +22,6 @@ def call(String serviceName, String environment, Map params = [:]) {
         environment {
             IMAGE_NAME = "${appName}"
             CONTAINER_NAME = "${appName}"
-            // Dynamically load environment variables from the configuration
             envConfig.envVars.each { key, value ->
                 env[key] = credentials(value)
             }
@@ -51,7 +50,7 @@ def call(String serviceName, String environment, Map params = [:]) {
                 steps {
                     script {
                         echo "Deploying with Docker Compose..."
-                        def composeEnvVars = envConfig.envVars.collect { key, _ -> "${key}=${env[key]}" }.join(' \')
+                        def composeEnvVars = envConfig.envVars.collect { key, _ -> "${key}=${env[key]}" }.join(' ')
                         sh """
                         ${composeEnvVars} \
                         docker compose up -d --force-recreate
@@ -93,5 +92,5 @@ def checkoutFromGit(String branch, String repoUrl, String credentialsId) {
 }
 
 def loadLibraryConfig() {
-    return libraryResource('config.groovy').evaluate()
+    return evaluate(libraryResource('config.groovy'))
 }
