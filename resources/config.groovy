@@ -3,7 +3,7 @@ return [
         public: [
             environments: [
                 dev: [
-                    agentName: 'any',
+                    agentName: '',
                     repoUrl: 'git@github.com:eskeon/public-web.git',
                     branch: 'staging',
                     credentialsId: 'git-eskeon-creds',
