@@ -20,7 +20,7 @@ return [
         private: [
             environments: [
                 dev: [
-                    agentName: 'any',
+                    agentName: '',
                     repoUrl: 'https://github.com/eskeon/private-web.git',
                     branch: 'dashboard',
                     credentialsId: 'git-eskeon-creds',
@@ -37,7 +37,7 @@ return [
         static: [
             environments: [
                 dev: [
-                    agentName: 'any',
+                    agentName: '',
                     repoUrl: 'https://github.com/eskeon/static-web.git',
                     branch: 'static',
                     credentialsId: 'git-eskeon-creds',
