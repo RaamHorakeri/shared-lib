@@ -20,12 +20,16 @@ def call(String serviceName, String environment, Map params = [:]) {
     pipeline {
         agent { label envConfig.agentName }
 
-        environment {
-            IMAGE_NAME = "${appName}"
-            CONTAINER_NAME = "${appName}"
-        }
-
         stages {
+            stage('Setup Environment Variables') {
+                steps {
+                    script {
+                        env.IMAGE_NAME = "${appName}"
+                        env.CONTAINER_NAME = "${appName}"
+                    }
+                }
+            }
+
             stage('Checkout') {
                 steps {
                     script {
@@ -38,8 +42,8 @@ def call(String serviceName, String environment, Map params = [:]) {
             stage('Build Docker Image') {
                 steps {
                     script {
-                        echo "Building new Docker image: ${IMAGE_NAME}"
-                        sh "docker build --no-cache -t ${IMAGE_NAME}:latest ."
+                        echo "Building new Docker image: ${env.IMAGE_NAME}"
+                        sh "docker build --no-cache -t ${env.IMAGE_NAME}:latest ."
                     }
                 }
             }
