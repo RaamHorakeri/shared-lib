@@ -1,6 +1,7 @@
 def call(String serviceName, String environment, Map params = [:]) {
     def config = loadLibraryConfig()
     def serviceConfig = config.services[serviceName]
+    
     if (!serviceConfig) {
         error "Service '${serviceName}' not found in configuration."
     }
@@ -47,9 +48,10 @@ def call(String serviceName, String environment, Map params = [:]) {
                 steps {
                     script {
                         echo "Deploying with Docker Compose..."
-                        def composeEnvVars = envConfig.envVars.collect { key, value -> "${key}=${value}" }.join(' ')
+                        def composeEnvVars = envConfig.envVars.collect { key, value -> "${key}=${value}" }.join(' \\\n')
                         sh """
-                        ${composeEnvVars} docker compose up -d --force-recreate
+                        ${composeEnvVars} \\
+                        docker compose up -d --force-recreate
                         """
                     }
                 }
@@ -79,6 +81,7 @@ def call(String serviceName, String environment, Map params = [:]) {
     }
 }
 
+// Function to checkout code from Git
 def checkoutFromGit(String branch, String repoUrl, String credentialsId) {
     checkout([
         $class: 'GitSCM',
@@ -87,7 +90,8 @@ def checkoutFromGit(String branch, String repoUrl, String credentialsId) {
     ])
 }
 
+// Function to load the configuration file
 def loadLibraryConfig() {
-    def scriptContent = libraryResource('config.groovy') // Load as string
-    return evaluate(scriptContent) // Properly evaluate as Groovy script
+    def scriptContent = libraryResource('config.groovy')
+    return evaluate(scriptContent)
 }
