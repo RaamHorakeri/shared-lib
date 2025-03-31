@@ -19,6 +19,11 @@ def call(String serviceName, String environment, Map params = [:]) {
     pipeline {
         agent { label envConfig.agentName }
 
+        environment {
+            IMAGE_NAME = "${appName}"
+            CONTAINER_NAME = "${appName}"
+        }
+
         stages {
             stage('Checkout') {
                 steps {
@@ -32,8 +37,8 @@ def call(String serviceName, String environment, Map params = [:]) {
             stage('Build Docker Image') {
                 steps {
                     script {
-                        echo "Building new Docker image: ${appName}"
-                        sh "docker build --no-cache -t ${appName}:latest ."
+                        echo "Building new Docker image: ${IMAGE_NAME}"
+                        sh "docker build --no-cache -t ${IMAGE_NAME}:latest ."
                     }
                 }
             }
@@ -43,7 +48,9 @@ def call(String serviceName, String environment, Map params = [:]) {
                     script {
                         echo "Deploying with Docker Compose..."
                         def composeEnvVars = envConfig.envVars.collect { key, value -> "${key}=${value}" }.join(' ')
-                        sh "env ${composeEnvVars} docker compose up -d --force-recreate"
+                        sh """
+                        ${composeEnvVars} docker compose up -d --force-recreate
+                        """
                     }
                 }
             }
@@ -81,5 +88,6 @@ def checkoutFromGit(String branch, String repoUrl, String credentialsId) {
 }
 
 def loadLibraryConfig() {
-    return libraryResource('config.groovy').evaluate()
+    def scriptContent = libraryResource('config.groovy') // Load as string
+    return evaluate(scriptContent) // Properly evaluate as Groovy script
 }
