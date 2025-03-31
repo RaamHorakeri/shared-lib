@@ -6,7 +6,7 @@ return [
                     agentName: 'any',
                     repoUrl: 'git@github.com:eskeon/public-web.git',
                     branch: 'staging',
-                    credentialsId: 'dev-creds',
+                    credentialsId: 'git-eskeon-creds',
                     envVars: [
                         SENDGRID_KEY: 'SENDGRID_KEY_DEV',
                         MONGO_CONNECTION_STRING: 'MONGO_CONNECTION_STRING_DEV',
@@ -23,7 +23,7 @@ return [
                     agentName: 'any',
                     repoUrl: 'https://github.com/eskeon/private-web.git',
                     branch: 'dashboard',
-                    credentialsId: 'dev-creds',
+                    credentialsId: 'git-eskeon-creds',
                     envVars: [
                         SENDGRID_KEY: 'SENDGRID_KEY_DEV',
                         MONGO_CONNECTION_STRING: 'MONGO_CONNECTION_STRING_DEV',
@@ -40,7 +40,7 @@ return [
                     agentName: 'any',
                     repoUrl: 'https://github.com/eskeon/static-web.git',
                     branch: 'static',
-                    credentialsId: 'dev-creds',
+                    credentialsId: 'git-eskeon-creds',
                     envVars: [
                         SENDGRID_KEY: 'SENDGRID_KEY_DEV',
                         MONGO_CONNECTION_STRING: 'MONGO_CONNECTION_STRING_DEV',
