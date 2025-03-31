@@ -1,0 +1,55 @@
+return [
+    services: [
+        public: [
+            environments: [
+                dev: [
+                    agentName: 'any',
+                    repoUrl: 'git@github.com:eskeon/public-web.git',
+                    branch: 'staging',
+                    credentialsId: 'dev-creds',
+                    envVars: [
+                        SENDGRID_KEY: 'SENDGRID_KEY_DEV',
+                        MONGO_CONNECTION_STRING: 'MONGO_CONNECTION_STRING_DEV',
+                        BIFROST_ACCOUNT_PROFILE_API: 'BIFROST_ACCOUNT_PROFILE_API_DEV',
+                        ODIN_SECRET: 'ODIN_SECRET_DEV',
+                        ODIN_HOST: 'ODIN_HOST_DEV'
+                    ]
+                ]
+            ]
+        ],
+        private: [
+            environments: [
+                dev: [
+                    agentName: 'any',
+                    repoUrl: 'https://github.com/eskeon/private-web.git',
+                    branch: 'dashboard',
+                    credentialsId: 'dev-creds',
+                    envVars: [
+                        SENDGRID_KEY: 'SENDGRID_KEY_DEV',
+                        MONGO_CONNECTION_STRING: 'MONGO_CONNECTION_STRING_DEV',
+                        BIFROST_ACCOUNT_PROFILE_API: 'BIFROST_ACCOUNT_PROFILE_API_DEV',
+                        ODIN_SECRET: 'ODIN_SECRET_DEV',
+                        ODIN_HOST: 'ODIN_HOST_DEV'
+                    ]
+                ]
+            ]
+        ],
+        static: [
+            environments: [
+                dev: [
+                    agentName: 'any',
+                    repoUrl: 'https://github.com/eskeon/static-web.git',
+                    branch: 'static',
+                    credentialsId: 'dev-creds',
+                    envVars: [
+                        SENDGRID_KEY: 'SENDGRID_KEY_DEV',
+                        MONGO_CONNECTION_STRING: 'MONGO_CONNECTION_STRING_DEV',
+                        BIFROST_ACCOUNT_PROFILE_API: 'BIFROST_ACCOUNT_PROFILE_API_DEV',
+                        ODIN_SECRET: 'ODIN_SECRET_DEV',
+                        ODIN_HOST: 'ODIN_HOST_DEV'
+                    ]
+                ]
+            ]
+        ]
+    ]
+]
