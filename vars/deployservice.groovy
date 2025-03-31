@@ -19,14 +19,6 @@ def call(String serviceName, String environment, Map params = [:]) {
     pipeline {
         agent { label envConfig.agentName }
 
-        environment {
-            IMAGE_NAME = "${appName}"
-            CONTAINER_NAME = "${appName}"
-            envConfig.envVars.each { key, value ->
-                env[key] = credentials(value)
-            }
-        }
-
         stages {
             stage('Checkout') {
                 steps {
@@ -40,8 +32,8 @@ def call(String serviceName, String environment, Map params = [:]) {
             stage('Build Docker Image') {
                 steps {
                     script {
-                        echo "Building new Docker image: ${IMAGE_NAME}"
-                        sh "docker build --no-cache -t ${IMAGE_NAME}:latest ."
+                        echo "Building new Docker image: ${appName}"
+                        sh "docker build --no-cache -t ${appName}:latest ."
                     }
                 }
             }
@@ -50,11 +42,8 @@ def call(String serviceName, String environment, Map params = [:]) {
                 steps {
                     script {
                         echo "Deploying with Docker Compose..."
-                        def composeEnvVars = envConfig.envVars.collect { key, _ -> "${key}=${env[key]}" }.join(' ')
-                        sh """
-                        ${composeEnvVars} \
-                        docker compose up -d --force-recreate
-                        """
+                        def composeEnvVars = envConfig.envVars.collect { key, value -> "${key}=${value}" }.join(' ')
+                        sh "env ${composeEnvVars} docker compose up -d --force-recreate"
                     }
                 }
             }
@@ -92,5 +81,5 @@ def checkoutFromGit(String branch, String repoUrl, String credentialsId) {
 }
 
 def loadLibraryConfig() {
-    return evaluate(libraryResource('config.groovy'))
+    return libraryResource('config.groovy').evaluate()
 }
