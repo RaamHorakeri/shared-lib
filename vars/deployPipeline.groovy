@@ -8,7 +8,7 @@ def call(String service, String environment) {
         }
 
         pipeline {
-            agent { label envConfig.agentName }
+            agent { label envConfig.agentName ?: 'default' }
 
             stages {
                 stage('Setup Environment Variables') {
@@ -78,9 +78,7 @@ def call(String service, String environment) {
 }
 
 def loadConfig() {
-    node {
-        return load("resources/config.groovy")
-    }
+    return load("${env.WORKSPACE}/resources/config.groovy")
 }
 
 return this
