@@ -112,25 +112,25 @@ def call(String serviceName, String environment, Map params = [:]) {
         error "Environment '${environment}' not found for service '${serviceName}'."
     }
 
-    // Override configuration with passed parameters
-    def appName = params.get('APP_NAME', serviceName.toLowerCase())
-    def repoUrl = params.get('REPO_URL', envConfig.repoUrl)
-    def credentialsId = params.get('CREDENTIALS_ID', envConfig.credentialsId)
-    def branch = params.get('BRANCH', envConfig.branch)
+    // Override configuration with passed parameters or use Jenkins build parameters
+    def appName = params.get('APP_NAME', params.APP_NAME ?: serviceName.toLowerCase())
+    def repoUrl = params.get('REPO_URL', params.REPO_URL ?: envConfig.repoUrl)
+    def credentialsId = params.get('CREDENTIALS_ID', params.CREDENTIALS_ID ?: envConfig.credentialsId)
+    def branch = params.get('BRANCH', params.BRANCH ?: envConfig.branch)
 
     pipeline {
         agent { label envConfig.agentName }
 
-        stages {
-            stage('Setup Environment Variables') {
-                steps {
-                    script {
-                        env.IMAGE_NAME = "${appName}"
-                        env.CONTAINER_NAME = "${appName}"
-                    }
-                }
+        environment {
+            IMAGE_NAME = "${appName}"
+            CONTAINER_NAME = "${appName}"
+            // Dynamically load environment variables from the configuration
+            envConfig.envVars.each { key, value ->
+                env[key] = credentials(value)
             }
+        }
 
+        stages {
             stage('Checkout') {
                 steps {
                     script {
@@ -153,9 +153,9 @@ def call(String serviceName, String environment, Map params = [:]) {
                 steps {
                     script {
                         echo "Deploying with Docker Compose..."
-                        def composeEnvVars = envConfig.envVars.collect { key, value -> "set ${key}=${value} &&" }.join(' ')
+                        def composeEnvVars = envConfig.envVars.collect { key, _ -> "set ${key}=%${key}% &&" }.join(' ')
                         bat """
-                        ${composeEnvVars} \\
+                        ${composeEnvVars} \
                         docker-compose up -d --force-recreate
                         """
                     }
@@ -197,7 +197,5 @@ def checkoutFromGit(String branch, String repoUrl, String credentialsId) {
 
 // Function to load the configuration file
 def loadLibraryConfig() {
-    def scriptContent = libraryResource('config.groovy')
-    return evaluate(scriptContent)
+    return libraryResource('config.groovy').evaluate()
 }
-
