@@ -1,4 +1,6 @@
-def call(String service, def envConfig) {
+def call(String service, String environment) {
+    def envConfig = loadConfig(environment)
+
     pipeline {
         agent { label envConfig.agentName }
 
@@ -72,3 +74,9 @@ def call(String service, def envConfig) {
         }
     }
 }
+
+def loadConfig(String env) {
+    return load("resources/config.groovy")[env]
+}
+
+return this
