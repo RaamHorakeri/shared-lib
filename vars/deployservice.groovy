@@ -10,5 +10,5 @@ def call(String service, String env) {
 }
 
 def loadConfig() {
-    return load 'resources/config.groovy'  // ✅ Loading from resources directory
+    return load("resources/config.groovy")  // ✅ Corrected syntax
 }
