@@ -1,73 +1,14 @@
-pipeline {
-    agent { label envConfig.agentName }
+def call(String service, String env) {
+    def config = loadConfig()
+    def envConfig = config.services[service]?.environments[env]
 
-    environment {
-        IMAGE_NAME = "${appName}"
-        CONTAINER_NAME = "${appName}"
+    if (!envConfig) {
+        error "Configuration not found for service: ${service}, environment: ${env}"
     }
 
-    stages {
-        stage('Setup Environment Variables') {
-            steps {
-                script {
-                    // Dynamically load environment variables from configuration
-                    envConfig.envVars.each { key, value -> 
-                        env[key] = credentials(value)
-                    }
-                }
-            }
-        }
+    deployPipeline(service, envConfig)
+}
 
-        stage('Checkout') {
-            steps {
-                script {
-                    echo "Checking out repository: ${repoUrl}, Branch: ${branch}"
-                    checkoutFromGit(branch, repoUrl, credentialsId)
-                }
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    echo "Building new Docker image: ${IMAGE_NAME}"
-                    bat "docker build --no-cache -t %IMAGE_NAME%:latest ."
-                }
-            }
-        }
-
-        stage('Deploy with Docker Compose') {
-            steps {
-                script {
-                    echo "Deploying with Docker Compose..."
-                    def composeEnvVars = envConfig.envVars.collect { key, _ -> "set ${key}=%${key}%" }.join(' & ')
-                    bat """
-                    ${composeEnvVars} &
-                    docker compose up -d --force-recreate
-                    """
-                }
-            }
-        }
-
-        stage('Cleanup Unused Docker Images') {
-            steps {
-                script {
-                    echo "Cleaning up unused Docker images..."
-                    bat "docker image prune -af"
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            echo 'Deployment complete.'
-        }
-        success {
-            echo 'Deployment succeeded.'
-        }
-        failure {
-            echo 'Deployment failed!'
-        }
-    }
+def loadConfig() {
+    return load 'resources/config.groovy'  // ✅ Loading from resources directory
 }
