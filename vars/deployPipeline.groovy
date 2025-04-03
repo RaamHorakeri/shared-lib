@@ -1,13 +1,13 @@
 def call(String service, String environment) {
-    def envConfig = loadConfig(environment)
+    def config = loadConfig()
+    def envConfig = config.services[service]?.environments[environment]
+
+    if (!envConfig) {
+        error("Configuration not found for service: ${service}, environment: ${environment}")
+    }
 
     pipeline {
         agent { label envConfig.agentName }
-
-        environment {
-            IMAGE_NAME = "${service}-web"
-            CONTAINER_NAME = "${service}-web"
-        }
 
         stages {
             stage('Setup Environment Variables') {
@@ -32,8 +32,8 @@ def call(String service, String environment) {
             stage('Build Docker Image') {
                 steps {
                     script {
-                        echo "Building Docker image: ${IMAGE_NAME}"
-                        bat "docker build --no-cache -t %IMAGE_NAME%:latest ."
+                        echo "Building Docker image: ${service}-web"
+                        bat "docker build --no-cache -t ${service}-web:latest ."
                     }
                 }
             }
@@ -75,8 +75,8 @@ def call(String service, String environment) {
     }
 }
 
-def loadConfig(String env) {
-    return load("resources/config.groovy")[env]
+def loadConfig() {
+    return load("resources/config.groovy")
 }
 
 return this
