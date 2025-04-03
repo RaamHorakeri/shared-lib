@@ -31,7 +31,7 @@ pipeline {
             steps {
                 script {
                     echo "Building new Docker image: ${IMAGE_NAME}"
-                    sh "docker build --no-cache -t ${IMAGE_NAME}:latest ."
+                    bat "docker build --no-cache -t %IMAGE_NAME%:latest ."
                 }
             }
         }
@@ -40,9 +40,9 @@ pipeline {
             steps {
                 script {
                     echo "Deploying with Docker Compose..."
-                    def composeEnvVars = envConfig.envVars.collect { key, _ -> "${key}=${env[key]}" }.join(' \\')
-                    sh """
-                    ${composeEnvVars} \\
+                    def composeEnvVars = envConfig.envVars.collect { key, _ -> "set ${key}=%${key}%" }.join(' & ')
+                    bat """
+                    ${composeEnvVars} &
                     docker compose up -d --force-recreate
                     """
                 }
@@ -53,7 +53,7 @@ pipeline {
             steps {
                 script {
                     echo "Cleaning up unused Docker images..."
-                    sh "docker image prune -af"
+                    bat "docker image prune -af"
                 }
             }
         }
