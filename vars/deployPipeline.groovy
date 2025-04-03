@@ -1,60 +1,74 @@
-package vars
+def call(String service, def envConfig) {
+    pipeline {
+        agent { label envConfig.agentName }
 
-def checkoutFromGit(String branch, String repoUrl, String credentialsId) {
-    echo "Checking out branch ${branch} from ${repoUrl}"
-    checkout([
-        $class: 'GitSCM',
-        branches: [[name: "*/${branch}"]],
-        userRemoteConfigs: [[url: repoUrl, credentialsId: credentialsId]]
-    ])
-}
-
-def buildDockerImage(String imageName) {
-    try {
-        echo "Building Docker image ${imageName}:latest"
-        bat "docker build -t ${imageName}:latest ."
-    } catch (Exception e) {
-        echo "Failed to build Docker image: ${e.message}"
-        throw e
-    }
-}
-
-def removeContainer(String containerName) {
-    try {
-        echo "Removing existing container ${containerName} if it exists"
-        bat "docker rm -f ${containerName} || exit 0"
-    } catch (Exception e) {
-        echo "Failed to remove container: ${e.message}"
-        throw e
-    }
-}
-
-def deployWithDockerCompose(Map<String, String> envVars) {
-    try {
-        echo "Deploying with Docker Compose"
-
-        // Check if envVars map is empty
-        if (envVars.isEmpty()) {
-            // No environment variables, just run docker-compose up -d
-            bat "docker-compose up -d"
-        } else {
-            // Construct the environment variable string
-            def envVarString = envVars.collect { key, value -> "${key}=${value}" }.join(' ')
-            bat "${envVarString} docker-compose up -d"
+        environment {
+            IMAGE_NAME = "${service}-web"
+            CONTAINER_NAME = "${service}-web"
         }
-    } catch (Exception e) {
-        echo "Deployment failed: ${e.message}"
-        throw e
-    }
-}
 
+        stages {
+            stage('Setup Environment Variables') {
+                steps {
+                    script {
+                        envConfig.envVars.each { key, value -> 
+                            env[key] = credentials(value)
+                        }
+                    }
+                }
+            }
 
-def deleteUnusedDockerImages() {
-    try {
-        echo "Deleting unused Docker images"
-        bat "docker image prune -f"
-    } catch (Exception e) {
-        echo "Failed to delete unused images: ${e.message}"
-        throw e
+            stage('Checkout') {
+                steps {
+                    script {
+                        echo "Checking out repository: ${envConfig.repoUrl}, Branch: ${envConfig.branch}"
+                        checkoutFromGit(envConfig.branch, envConfig.repoUrl, envConfig.credentialsId)
+                    }
+                }
+            }
+
+            stage('Build Docker Image') {
+                steps {
+                    script {
+                        echo "Building Docker image: ${IMAGE_NAME}"
+                        bat "docker build --no-cache -t %IMAGE_NAME%:latest ."
+                    }
+                }
+            }
+
+            stage('Deploy with Docker Compose') {
+                steps {
+                    script {
+                        echo "Deploying service..."
+                        def composeEnvVars = envConfig.envVars.collect { key, _ -> "set ${key}=%${key}%" }.join(' & ')
+                        bat """
+                        ${composeEnvVars} &
+                        docker compose up -d --force-recreate
+                        """
+                    }
+                }
+            }
+
+            stage('Cleanup Unused Docker Images') {
+                steps {
+                    script {
+                        echo "Cleaning up unused Docker images..."
+                        bat "docker image prune -af"
+                    }
+                }
+            }
+        }
+
+        post {
+            always {
+                echo 'Deployment complete.'
+            }
+            success {
+                echo 'Deployment succeeded.'
+            }
+            failure {
+                echo 'Deployment failed!'
+            }
+        }
     }
 }
