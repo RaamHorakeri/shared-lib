@@ -1,4 +1,4 @@
-return [
+def config = [
     services: [
         public: [
             environments: [
@@ -53,3 +53,5 @@ return [
         ]
     ]
 ]
+
+return config
