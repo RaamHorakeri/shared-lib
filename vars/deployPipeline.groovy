@@ -8,7 +8,7 @@ def call(String service, String environment) {
         }
 
         pipeline {
-            agent { label envConfig.agentName ?: 'default' }
+            agent { label envConfig.agentName }
 
             stages {
                 stage('Setup Environment Variables') {
@@ -78,7 +78,13 @@ def call(String service, String environment) {
 }
 
 def loadConfig() {
-    return load("${env.WORKSPACE}/resources/config.groovy")
+    node {
+        def configPath = "resources/config.groovy"
+        if (!fileExists(configPath)) {
+            error("Configuration file not found: ${configPath}")
+        }
+        return load(configPath)
+    }
 }
 
 return this
