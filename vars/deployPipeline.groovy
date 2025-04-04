@@ -1,10 +1,19 @@
 def call(String imageName, String environment, String imageTag, String branch) {
     node {
         def config = loadConfig()
-        def envConfig = config.services[imageName]?.environments[environment]
 
+        if (!config) {
+            error("Configuration not loaded. Please check loadConfig() function.")
+        }
+
+        def serviceConfig = config.services[imageName]
+        if (!serviceConfig) {
+            error("Service configuration not found for: ${imageName}")
+        }
+
+        def envConfig = serviceConfig.environments[environment]
         if (!envConfig) {
-            error("Configuration not found for service: ${imageName}, environment: ${environment}")
+            error("Environment configuration not found for service: ${imageName}, environment: ${environment}")
         }
 
         pipeline {
@@ -14,8 +23,12 @@ def call(String imageName, String environment, String imageTag, String branch) {
                 stage('Setup Environment Variables') {
                     steps {
                         script {
-                            envConfig.envVars.each { key, value -> 
-                                env[key] = credentials(value)
+                            if (envConfig.envVars) {
+                                envConfig.envVars.each { key, value -> 
+                                    env[key] = credentials(value)
+                                }
+                            } else {
+                                echo "No environment variables configured."
                             }
                         }
                     }
@@ -30,10 +43,15 @@ def call(String imageName, String environment, String imageTag, String branch) {
                     }
                 }
 
-                stage('Build Docker Image') {
+                stage('Docker Login & Build Image') {
                     steps {
                         script {
                             def imageFullName = "${imageName}:${imageTag}"
+                            echo "Logging in to Docker Hub..."
+                            withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                                bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
+                            }
+
                             echo "Building Docker image: ${imageFullName}"
                             bat "docker build --no-cache -t ${imageFullName} ."
                         }
@@ -77,6 +95,7 @@ def call(String imageName, String environment, String imageTag, String branch) {
         }
     }
 }
+
 
 // def call(String imageName, String environment, String imageTag, String branch) {
 //     node {
