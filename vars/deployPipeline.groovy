@@ -116,7 +116,9 @@ def call(String imageName, String environment, String imageTag, String branch) {
                             def imageFullName = "${imageName}-web:${imageTag}"
                             echo "Logging in to Docker Hub..."
                             withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                                bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
+                                bat """
+                                echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
+                                """
                             }
 
                             echo "Building Docker image: ${imageFullName}"
