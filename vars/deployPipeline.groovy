@@ -1,10 +1,10 @@
-def call(String service, String environment, String imageTag, String branch) {
+def call(String imageName, String environment, String imageTag, String branch) {
     node {
         def config = loadConfig()
-        def envConfig = config.services[service]?.environments[environment]
+        def envConfig = config.services[imageName]?.environments[environment]
 
         if (!envConfig) {
-            error("Configuration not found for service: ${service}, environment: ${environment}")
+            error("Configuration not found for service: ${imageName}, environment: ${environment}")
         }
 
         pipeline {
@@ -33,8 +33,9 @@ def call(String service, String environment, String imageTag, String branch) {
                 stage('Build Docker Image') {
                     steps {
                         script {
-                            echo "Building Docker image: ${service}-web with tag ${imageTag}"
-                            bat "docker build --no-cache -t ${service}-web:${imageTag} ."
+                            def imageFullName = "${imageName}-web:${imageTag}"
+                            echo "Building Docker image: ${imageFullName}"
+                            bat "docker build --no-cache -t ${imageFullName} ."
                         }
                     }
                 }
@@ -42,7 +43,7 @@ def call(String service, String environment, String imageTag, String branch) {
                 stage('Deploy with Docker Compose') {
                     steps {
                         script {
-                            echo "Deploying service..."
+                            echo "Deploying service with Docker Compose..."
                             def composeEnvVars = envConfig.envVars.collect { key, _ -> "set ${key}=%${key}%" }.join(' & ')
                             bat """
                             ${composeEnvVars} &
