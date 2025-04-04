@@ -8,7 +8,7 @@ def call(String service, String environment, String imageTag, String branch) {
         }
 
         pipeline {
-            agent { label envConfig.agentName }
+            agent { label envConfig.agentName ?: '' }
 
             stages {
                 stage('Setup Environment Variables') {
