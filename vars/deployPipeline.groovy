@@ -33,7 +33,7 @@ def call(String imageName, String environment, String imageTag, String branch) {
                 stage('Build Docker Image') {
                     steps {
                         script {
-                            def imageFullName = "${imageName}-web:${imageTag}"
+                            def imageFullName = "${imageName}:${imageTag}"
                             echo "Building Docker image: ${imageFullName}"
                             bat "docker build --no-cache -t ${imageFullName} ."
                         }
