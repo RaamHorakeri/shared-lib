@@ -1,10 +1,15 @@
-def call(String service, String environment) {
+def call(String service, String environment, String imageName = '', String branchName = '') {
     node {
         def config = loadConfig()
         def envConfig = config.services[service]?.environments[environment]
 
         if (!envConfig) {
             error("Configuration not found for service: ${service}, environment: ${environment}")
+        }
+
+        // Override branch if passed from Jenkinsfile
+        if (branchName?.trim()) {
+            envConfig.branch = branchName
         }
 
         pipeline {
@@ -42,7 +47,7 @@ def call(String service, String environment) {
                 stage('Deploy with Docker Compose') {
                     steps {
                         script {
-                            echo "Deploying service..."
+                            echo "Deploying service with Docker Compose..."
                             def composeEnvVars = envConfig.envVars.collect { key, _ -> "set ${key}=%${key}%" }.join(' & ')
                             bat """
                             ${composeEnvVars} &
@@ -86,5 +91,3 @@ def loadConfig() {
         return load(configPath)
     }
 }
-
-return this
