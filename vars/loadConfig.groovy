@@ -52,7 +52,7 @@ def call() {
                     ]
                 ]
             ],
-            webcalc: [
+            web-calculator: [
                 environments: [
                     dev: [
                         agentName: '',
