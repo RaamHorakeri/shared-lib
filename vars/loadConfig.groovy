@@ -51,7 +51,7 @@ def call() {
                         ]
                     ]
                 ]
-            ]
+            ],
             webcalc: [
                 environments: [
                     dev: [
@@ -68,7 +68,7 @@ def call() {
                         ]
                     ]
                 ]
-            ]
+            ],
             django: [
                 environments: [
                     dev: [
