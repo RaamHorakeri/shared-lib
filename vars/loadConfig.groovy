@@ -1,7 +1,7 @@
 def call() {
     def config = [
         services: [
-            public: [
+            "public-web": [
                 environments: [
                     dev: [
                         agentName: '',
@@ -18,7 +18,7 @@ def call() {
                     ]
                 ]
             ],
-            private: [
+            "private-web": [
                 environments: [
                     dev: [
                         agentName: '',
@@ -35,7 +35,7 @@ def call() {
                     ]
                 ]
             ],
-            static: [
+            "static-web": [
                 environments: [
                     dev: [
                         agentName: '',
