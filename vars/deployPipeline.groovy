@@ -47,10 +47,10 @@ def call(String imageName, String environment, String imageTag, String branch) {
                     steps {
                         script {
                             def imageFullName = "${imageName}:${imageTag}"
-                            echo "Logging in to Docker Hub..."
-                            withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                                bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
-                            }
+                            // echo "Logging in to Docker Hub..."
+                            // withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                            //     bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
+                            // }
 
                             echo "Building Docker image: ${imageFullName}"
                             bat "docker build --no-cache -t ${imageFullName} ."
