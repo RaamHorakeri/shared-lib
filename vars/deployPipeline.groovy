@@ -1,4 +1,4 @@
-def call(String service, String environment) {
+def call(String service, String environment, String imageTag, String branch) {
     node {
         def config = loadConfig()
         def envConfig = config.services[service]?.environments[environment]
@@ -24,8 +24,8 @@ def call(String service, String environment) {
                 stage('Checkout') {
                     steps {
                         script {
-                            echo "Checking out repository: ${envConfig.repoUrl}, Branch: ${envConfig.branch}"
-                            checkoutFromGit(envConfig.branch, envConfig.repoUrl, envConfig.credentialsId)
+                            echo "Checking out repository: ${envConfig.repoUrl}, Branch: ${branch}"
+                            checkoutFromGit(branch, envConfig.repoUrl, envConfig.credentialsId)
                         }
                     }
                 }
@@ -33,8 +33,8 @@ def call(String service, String environment) {
                 stage('Build Docker Image') {
                     steps {
                         script {
-                            echo "Building Docker image: ${service}-web"
-                            bat "docker build --no-cache -t ${service}-web:latest ."
+                            echo "Building Docker image: ${service}-web with tag ${imageTag}"
+                            bat "docker build --no-cache -t ${service}-web:${imageTag} ."
                         }
                     }
                 }
@@ -76,12 +76,3 @@ def call(String service, String environment) {
         }
     }
 }
-
-// ✅ Updated config loader for Jenkins Shared Library
-def loadConfig() {
-    def configText = libraryResource('config.groovy')
-    def configScript = new GroovyShell().evaluate(configText)
-    return configScript
-}
-
-return this
