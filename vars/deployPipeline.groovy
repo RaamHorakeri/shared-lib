@@ -53,7 +53,9 @@ def call(String imageName, String environment, String imageTag, String branch) {
                             // }
 
                             echo "Building Docker image: ${imageFullName}"
-                            bat "docker build --no-cache -t ${imageFullName} ."
+                            // bat "docker build --no-cache -t ${imageFullName} ."
+                               bat "docker build --pull=never -t ${imageFullName} ."
+
                         }
                     }
                 }
