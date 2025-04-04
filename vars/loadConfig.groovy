@@ -69,7 +69,7 @@ def call() {
                     ]
                 ]
             ],
-            django: [
+            "trainwithshubham/my-note-app": [
                 environments: [
                     dev: [
                         agentName: '',
