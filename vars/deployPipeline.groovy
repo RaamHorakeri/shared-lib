@@ -66,10 +66,15 @@ def call(String imageName, String environment, String imageTag, String branch) {
                 stage('Deploy with Docker Compose') {
                     steps {
                         script {
-                            echo "Deploying service with Docker Compose..."
-                            def composeEnvVars = envConfig.envVars.collect { key, _ -> "set ${key}=%${key}%" }.join(' & ')
+                            // echo "Deploying service with Docker Compose..."
+                            // def composeEnvVars = envConfig.envVars.collect { key, _ -> "set ${key}=%${key}%" }.join(' & ')
+                            // sh """
+                            // ${composeEnvVars} &
+                            // docker compose up -d --force-recreate
+                            // """
+                            def composeEnvVars = envConfig.envVars.collect { key, _ -> "export ${key}=\$${key}" }.join(' && ')
                             sh """
-                            ${composeEnvVars} &
+                            ${composeEnvVars} &&
                             docker compose up -d --force-recreate
                             """
                         }
