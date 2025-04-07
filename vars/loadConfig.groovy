@@ -105,6 +105,5 @@ def call() {
             ]
         ]
     ]
-
     return config
 }
