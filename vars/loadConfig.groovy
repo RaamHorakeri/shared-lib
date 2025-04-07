@@ -85,7 +85,7 @@ def call() {
                         ]
                     ]
                 ]
-            ]
+            ],
             "raven": [
                 environments: [
                     dev: [
