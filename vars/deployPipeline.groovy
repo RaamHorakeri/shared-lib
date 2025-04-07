@@ -55,7 +55,8 @@ def call(String imageName, String environment, String imageTag, String branch) {
                             echo "Building Docker image: ${imageFullName}"
                             // bat "docker build --no-cache -t ${imageFullName} ."
                                // bat "docker build --pull=never -t ${imageFullName} ."
-                            bat "docker build -t ${imageFullName} ."
+                            // bat "docker build -t ${imageFullName} ."
+                             sh "docker build -t ${imageFullName} ."
 
 
                         }
@@ -67,7 +68,7 @@ def call(String imageName, String environment, String imageTag, String branch) {
                         script {
                             echo "Deploying service with Docker Compose..."
                             def composeEnvVars = envConfig.envVars.collect { key, _ -> "set ${key}=%${key}%" }.join(' & ')
-                            bat """
+                            sh """
                             ${composeEnvVars} &
                             docker compose up -d --force-recreate
                             """
@@ -79,7 +80,7 @@ def call(String imageName, String environment, String imageTag, String branch) {
                     steps {
                         script {
                             echo "Cleaning up unused Docker images..."
-                            bat "docker image prune -af"
+                            sh "docker image prune -af"
                         }
                     }
                 }
