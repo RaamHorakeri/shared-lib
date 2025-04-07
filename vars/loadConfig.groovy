@@ -68,7 +68,7 @@ def call() {
                         ]
                     ]
                 ]
-            ]
+            ],
             "community": [
                 environments: [
                     dev: [
