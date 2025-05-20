@@ -109,25 +109,34 @@
 
 def call(String imageName, String environment, String imageTag, String branch) {
     node {
+        // Load your config (make sure loadConfig() returns a proper Map)
         def config = loadConfig()
+        
+        // Access service and environment config safely
         def envConfig = config.services[imageName]?.environments[environment]
-
         if (!envConfig) {
-            error("Configuration not found for service: ${imageName}, environment: ${environment}")
+            error("Configuration not found for service: '${imageName}', environment: '${environment}'")
         }
-
+        
         def imageFullName = "${imageName}:${imageTag}"
 
+        // Start the declarative pipeline block inside node
         pipeline {
             agent { label envConfig.agentName ?: '' }
+
+            environment {
+                // You can optionally define env vars here if static,
+                // but since you're fetching from credentials dynamically below, skip here
+            }
 
             stages {
                 stage('Setup Environment Variables') {
                     steps {
                         script {
-                            echo "Setting up environment variables..."
-                            envConfig.envVars.each { key, value ->
-                                env[key] = credentials(value)
+                            echo "Setting up environment variables from Jenkins Credentials..."
+                            envConfig.envVars.each { key, credId ->
+                                // Load credentials securely and assign to env
+                                env[key] = credentials(credId)
                             }
                         }
                     }
@@ -136,7 +145,7 @@ def call(String imageName, String environment, String imageTag, String branch) {
                 stage('Checkout') {
                     steps {
                         script {
-                            echo "Checking out repository: ${envConfig.repoUrl}, Branch: ${branch}"
+                            echo "Checking out branch '${branch}' from repo '${envConfig.repoUrl}'"
                             checkoutFromGit(branch, envConfig.repoUrl, envConfig.credentialsId)
                         }
                     }
@@ -145,22 +154,18 @@ def call(String imageName, String environment, String imageTag, String branch) {
                 stage('Docker Login') {
                     steps {
                         script {
-                            echo "Logging into Docker Hub..."
+                            echo "Logging into Docker Hub using Jenkins credentials..."
 
-                            // ✅ Use secure credentials management in production
                             withCredentials([usernamePassword(
-                            credentialsId: 'dockerhub-credentials',
-                            usernameVariable: 'DOCKER_USER',
-                            passwordVariable: 'DOCKER_PASS'
+                                credentialsId: 'dockerhub-credentials',
+                                usernameVariable: 'DOCKER_USER',
+                                passwordVariable: 'DOCKER_PASS'
                             )]) {
-                             bat '''
-                             echo Logging in as %DOCKER_USER%
-                             docker login -u %DOCKER_USER% -p %DOCKER_PASS%
-                             '''
+                                bat """
+                                echo Logging in as %DOCKER_USER%
+                                docker login -u %DOCKER_USER% -p %DOCKER_PASS%
+                                """
                             }
-
-                            // ⛔ Temporary fallback (REMOVE before pushing to repo)
-                            // bat 'docker login -u raam2023 -p dckr_pat_GqMQ-qjOiVaWnwLtdQP-5m902CQ'
                         }
                     }
                 }
@@ -179,15 +184,13 @@ def call(String imageName, String environment, String imageTag, String branch) {
                         script {
                             echo "Generating .env file for Docker Compose..."
 
-                            // Generate .env file content from loaded credentials
                             def envFileContent = envConfig.envVars.collect { key, _ ->
                                 "${key}=${env[key]}"
-                            }.join('\n')
+                            }.join('\r\n')  // Windows newlines
 
-                            // Write the .env file to the workspace
                             writeFile file: '.env', text: envFileContent
 
-                            echo "Running Docker Compose with generated .env file..."
+                            echo "Running docker compose up -d --force-recreate"
                             bat 'docker compose up -d --force-recreate'
                         }
                     }
@@ -205,7 +208,7 @@ def call(String imageName, String environment, String imageTag, String branch) {
 
             post {
                 always {
-                    echo 'Deployment complete.'
+                    echo 'Deployment finished.'
                 }
                 success {
                     echo 'Deployment succeeded.'
