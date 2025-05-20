@@ -193,6 +193,5 @@ def call(String imageName, String environment, String imageTag, String branch) {
             }
         }
     }
-}
 
 
