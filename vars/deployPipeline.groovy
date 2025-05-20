@@ -152,19 +152,20 @@ def call(String imageName, String environment, String imageTag, String branch) {
         stage('Docker Compose Deploy') {
             echo "Running docker compose with env vars from Jenkins credentials..."
 
-            // Prepare credentials for withCredentials
+            // Prepare credential bindings
             def bindings = envConfig.envVars.collect { key, credId ->
                 string(credentialsId: credId, variable: key)
             }
 
-            // Use the credentials in one block
+            // Inject all credentials into scope
             withCredentials(bindings) {
+                // Create a properly chained environment string for Windows BAT shell
                 def envString = envConfig.envVars.collect { key, _ ->
-                    "${key}=${env[key]}"
+                    "set ${key}=${env[key]} &&"
                 }.join(' ')
 
                 bat """
-                set ${envString} && docker compose up -d --force-recreate
+                ${envString} docker compose up -d --force-recreate
                 """
             }
         }
