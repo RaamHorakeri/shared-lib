@@ -116,6 +116,8 @@ def call(String imageName, String environment, String imageTag, String branch) {
             error("Configuration not found for service: ${imageName}, environment: ${environment}")
         }
 
+        def imageFullName = "${imageName}:${imageTag}"
+
         pipeline {
             agent { label envConfig.agentName ?: '' }
 
@@ -123,6 +125,7 @@ def call(String imageName, String environment, String imageTag, String branch) {
                 stage('Setup Environment Variables') {
                     steps {
                         script {
+                            echo "Setting up environment variables..."
                             envConfig.envVars.each { key, value -> 
                                 env[key] = credentials(value)
                             }
@@ -139,38 +142,29 @@ def call(String imageName, String environment, String imageTag, String branch) {
                     }
                 }
 
-                stage('Docker Login & Build Image') {
+                stage('Docker Build Image') {
                     steps {
                         script {
-                            // def imageFullName = "${imageName}-web:${imageTag}"
-                            // echo "Logging in to Docker Hub..."
-                            // withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                            //     bat """
-                            //     docker login -u %DOCKER_USER% -p %DOCKER_PASS%
-                            //     """
                             echo "Building Docker image: ${imageFullName}"
                             bat "docker build --no-cache -t ${imageFullName} ."
-                            }
-
-                            
                         }
                     }
                 }
 
-                stage('Deploy with Docker Compose') {
+                stage('Docker Compose Deploy') {
                     steps {
                         script {
-                            echo "Deploying service with Docker Compose..."
-                            def composeEnvVars = envConfig.envVars.collect { key, _ -> "set ${key}=%${key}%" }.join(' & ')
+                            echo "Deploying service using Docker Compose..."
+                            def composeEnvVars = envConfig.envVars.collect { key, _ -> "set ${key}=%${key}%" }.join(' && ')
                             bat """
-                            ${composeEnvVars} &
+                            ${composeEnvVars} &&
                             docker compose up -d --force-recreate
                             """
                         }
                     }
                 }
 
-                stage('Cleanup Unused Docker Images') {
+                stage('Docker Cleanup') {
                     steps {
                         script {
                             echo "Cleaning up unused Docker images..."
@@ -193,5 +187,6 @@ def call(String imageName, String environment, String imageTag, String branch) {
             }
         }
     }
+}
 
 
