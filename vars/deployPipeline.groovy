@@ -149,11 +149,14 @@ def call(String imageName, String environment, String imageTag, String branch) {
 
                             // ✅ Use secure credentials management in production
                             withCredentials([usernamePassword(
-                                credentialsId: 'dockerhub-credentials',
-                                usernameVariable: 'DOCKER_USER',
-                                passwordVariable: 'DOCKER_PASS'
+                            credentialsId: 'dockerhub-credentials',
+                            usernameVariable: 'DOCKER_USER',
+                            passwordVariable: 'DOCKER_PASS'
                             )]) {
-                                bat 'docker login -u %DOCKER_USER% -p %DOCKER_PASS%'
+                             bat '''
+                             echo Logging in as %DOCKER_USER%
+                             docker login -u %DOCKER_USER% -p %DOCKER_PASS%
+                             '''
                             }
 
                             // ⛔ Temporary fallback (REMOVE before pushing to repo)
