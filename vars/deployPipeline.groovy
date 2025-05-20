@@ -118,11 +118,17 @@ def call(String imageName, String environment, String imageTag, String branch) {
 
         def imageFullName = "${imageName}:${imageTag}"
 
+        // Map to store actual secret values
+        def secretsMap = [:]
+
         stage('Setup Environment Variables') {
-            echo "Setting up environment variables from Jenkins Credentials..."
-            // Fetch credentials and assign to env with _DEV suffix to match docker-compose
+            echo "Fetching secrets from Jenkins Credentials..."
+
+            // For each env var, get its secret value using withCredentials
             envConfig.envVars.each { key, credId ->
-                env["${key}_DEV"] = credentials(credId)
+                withCredentials([string(credentialsId: credId, variable: 'SECRET_VALUE')]) {
+                    secretsMap["${key}_DEV"] = SECRET_VALUE
+                }
             }
         }
 
@@ -151,10 +157,11 @@ def call(String imageName, String environment, String imageTag, String branch) {
         }
 
         stage('Prepare .env file') {
-            echo "Generating .env file for Docker Compose..."
-            def envFileContent = envConfig.envVars.collect { key, _ ->
-                "${key}_DEV=${env["${key}_DEV"]}"
-            }.join('\r\n')  // Windows line endings
+            echo "Generating .env file for Docker Compose with real secrets..."
+
+            def envFileContent = secretsMap.collect { k, v ->
+                "${k}=${v}"
+            }.join('\r\n')
 
             writeFile file: '.env', text: envFileContent
         }
