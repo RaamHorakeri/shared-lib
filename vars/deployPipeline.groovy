@@ -120,8 +120,9 @@ def call(String imageName, String environment, String imageTag, String branch) {
 
         stage('Setup Environment Variables') {
             echo "Setting up environment variables from Jenkins Credentials..."
+            // Fetch credentials and assign to env with _DEV suffix to match docker-compose
             envConfig.envVars.each { key, credId ->
-                env[key] = credentials(credId)
+                env["${key}_DEV"] = credentials(credId)
             }
         }
 
@@ -149,15 +150,16 @@ def call(String imageName, String environment, String imageTag, String branch) {
             bat "docker build --no-cache -t ${imageFullName} ."
         }
 
+        stage('Prepare .env file') {
+            echo "Generating .env file for Docker Compose..."
+            def envFileContent = envConfig.envVars.collect { key, _ ->
+                "${key}_DEV=${env["${key}_DEV"]}"
+            }.join('\r\n')  // Windows line endings
+
+            writeFile file: '.env', text: envFileContent
+        }
+
         stage('Docker Compose Deploy') {
-            // echo "Generating .env file for Docker Compose..."
-
-            // def envFileContent = envConfig.envVars.collect { key, _ ->
-            //     "${key}=${env[key]}"
-            // }.join('\r\n')  // Windows line endings
-
-            // writeFile file: '.env', text: envFileContent
-
             echo "Running docker compose up -d --force-recreate"
             bat 'docker compose up -d --force-recreate'
         }
@@ -166,9 +168,5 @@ def call(String imageName, String environment, String imageTag, String branch) {
             echo "Cleaning up unused Docker images..."
             bat "docker image prune -af"
         }
-
-        // Post-actions in scripted pipeline:
-        // You can use try/catch/finally or post conditions differently if needed
     }
 }
-
