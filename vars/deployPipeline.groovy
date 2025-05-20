@@ -145,11 +145,19 @@ def call(String imageName, String environment, String imageTag, String branch) {
                 stage('Docker Login') {
                     steps {
                         script {
-                            // echo "Logging in to Docker Hub..."
-                            // withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                            //     bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
-                            bat 'docker login -u raam2023 -p dckr_pat_GqMQ-qjOiVaWnwLtdQP-5m902CQ'
+                            echo "Logging into Docker Hub..."
+
+                            // 🔒 Recommended: use Jenkins credentials for security
+                            withCredentials([usernamePassword(
+                                credentialsId: 'dockerhub-credentials', 
+                                usernameVariable: 'DOCKER_USER', 
+                                passwordVariable: 'DOCKER_PASS'
+                            )]) {
+                                bat 'docker login -u %DOCKER_USER% -p %DOCKER_PASS%'
                             }
+
+                            // OR ⛔️ For quick test (remove before committing):
+                            // bat 'docker login -u raam2023 -p dckr_pat_GqMQ-qjOiVaWnwLtdQP-5m902CQ'
                         }
                     }
                 }
@@ -200,3 +208,4 @@ def call(String imageName, String environment, String imageTag, String branch) {
         }
     }
 }
+
