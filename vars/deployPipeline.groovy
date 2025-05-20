@@ -126,7 +126,7 @@ def call(String imageName, String environment, String imageTag, String branch) {
                     steps {
                         script {
                             echo "Setting up environment variables..."
-                            envConfig.envVars.each { key, value -> 
+                            envConfig.envVars.each { key, value ->
                                 env[key] = credentials(value)
                             }
                         }
@@ -147,16 +147,16 @@ def call(String imageName, String environment, String imageTag, String branch) {
                         script {
                             echo "Logging into Docker Hub..."
 
-                            // // 🔒 Recommended: use Jenkins credentials for security
+                            // ✅ Use secure credentials management in production
                             // withCredentials([usernamePassword(
-                            //     credentialsId: 'dockerhub-credentials', 
-                            //     usernameVariable: 'DOCKER_USER', 
+                            //     credentialsId: 'dockerhub-credentials',
+                            //     usernameVariable: 'DOCKER_USER',
                             //     passwordVariable: 'DOCKER_PASS'
                             // )]) {
                             //     bat 'docker login -u %DOCKER_USER% -p %DOCKER_PASS%'
                             // }
 
-                            // OR ⛔️ For quick test (remove before committing):
+                            // ⛔ Temporary fallback (REMOVE before pushing to repo)
                             bat 'docker login -u raam2023 -p dckr_pat_GqMQ-qjOiVaWnwLtdQP-5m902CQ'
                         }
                     }
@@ -174,12 +174,18 @@ def call(String imageName, String environment, String imageTag, String branch) {
                 stage('Docker Compose Deploy') {
                     steps {
                         script {
-                            echo "Deploying service using Docker Compose..."
-                            def composeEnvVars = envConfig.envVars.collect { key, _ -> "set ${key}=%${key}%" }.join(' && ')
-                            bat """
-                            ${composeEnvVars} &&
-                            docker compose up -d --force-recreate
-                            """
+                            echo "Generating .env file for Docker Compose..."
+
+                            // Generate .env file content from loaded credentials
+                            def envFileContent = envConfig.envVars.collect { key, _ ->
+                                "${key}=${env[key]}"
+                            }.join('\n')
+
+                            // Write the .env file to the workspace
+                            writeFile file: '.env', text: envFileContent
+
+                            echo "Running Docker Compose with generated .env file..."
+                            bat 'docker compose up -d --force-recreate'
                         }
                     }
                 }
@@ -208,4 +214,3 @@ def call(String imageName, String environment, String imageTag, String branch) {
         }
     }
 }
-
