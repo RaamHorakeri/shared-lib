@@ -142,16 +142,17 @@ def call(String imageName, String environment, String imageTag, String branch) {
                 stage('Docker Login & Build Image') {
                     steps {
                         script {
-                            def imageFullName = "${imageName}-web:${imageTag}"
-                            echo "Logging in to Docker Hub..."
-                            withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                                bat """
-                                docker login -u %DOCKER_USER% -p %DOCKER_PASS%
-                                """
-                            }
-
+                            // def imageFullName = "${imageName}-web:${imageTag}"
+                            // echo "Logging in to Docker Hub..."
+                            // withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                            //     bat """
+                            //     docker login -u %DOCKER_USER% -p %DOCKER_PASS%
+                            //     """
                             echo "Building Docker image: ${imageFullName}"
                             bat "docker build --no-cache -t ${imageFullName} ."
+                            }
+
+                            
                         }
                     }
                 }
