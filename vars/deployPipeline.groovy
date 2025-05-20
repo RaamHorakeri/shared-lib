@@ -150,13 +150,13 @@ def call(String imageName, String environment, String imageTag, String branch) {
         }
 
         stage('Docker Compose Deploy') {
-            echo "Generating .env file for Docker Compose..."
+            // echo "Generating .env file for Docker Compose..."
 
-            def envFileContent = envConfig.envVars.collect { key, _ ->
-                "${key}=${env[key]}"
-            }.join('\r\n')  // Windows line endings
+            // def envFileContent = envConfig.envVars.collect { key, _ ->
+            //     "${key}=${env[key]}"
+            // }.join('\r\n')  // Windows line endings
 
-            writeFile file: '.env', text: envFileContent
+            // writeFile file: '.env', text: envFileContent
 
             echo "Running docker compose up -d --force-recreate"
             bat 'docker compose up -d --force-recreate'
