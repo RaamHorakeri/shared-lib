@@ -118,17 +118,11 @@ def call(String imageName, String environment, String imageTag, String branch) {
 
         def imageFullName = "${imageName}:${imageTag}"
 
-        // Map to store actual secret values
-        def secretsMap = [:]
-
         stage('Setup Environment Variables') {
             echo "Fetching secrets from Jenkins Credentials..."
-
-            // For each env var, get its secret value using withCredentials
+            // Just for logging - no env set here
             envConfig.envVars.each { key, credId ->
-                withCredentials([string(credentialsId: credId, variable: 'SECRET_VALUE')]) {
-                    secretsMap["${key}_DEV"] = SECRET_VALUE
-                }
+                echo "Credential for env var ${key}: ${credId}"
             }
         }
 
@@ -156,19 +150,22 @@ def call(String imageName, String environment, String imageTag, String branch) {
             bat "docker build --no-cache -t ${imageFullName} ."
         }
 
-        stage('Prepare .env file') {
-            echo "Generating .env file for Docker Compose with real secrets..."
-
-            def envFileContent = secretsMap.collect { k, v ->
-                "${k}=${v}"
-            }.join('\r\n')
-
-            writeFile file: '.env', text: envFileContent
-        }
-
         stage('Docker Compose Deploy') {
-            echo "Running docker compose up -d --force-recreate"
-            bat 'docker compose up -d --force-recreate'
+            echo "Running docker compose with env vars from Jenkins credentials"
+
+            // Collect env vars with secrets, then run docker compose with them inline
+            def envString = envConfig.envVars.collect { key, credId ->
+                def secretValue = ''
+                withCredentials([string(credentialsId: credId, variable: 'SECRET_VALUE')]) {
+                    secretValue = SECRET_VALUE
+                }
+                // Escape any special characters in secretValue if needed here
+                return "${key}=${secretValue}"
+            }.join(' ')
+
+            bat """
+            set ${envString} && docker compose up -d --force-recreate
+            """
         }
 
         stage('Docker Cleanup') {
