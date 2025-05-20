@@ -142,6 +142,17 @@ def call(String imageName, String environment, String imageTag, String branch) {
                     }
                 }
 
+                stage('Docker Login') {
+                    steps {
+                        script {
+                            echo "Logging in to Docker Hub..."
+                            withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                                bat "docker login -u %DOCKER_USER% -p %DOCKER_PASS%"
+                            }
+                        }
+                    }
+                }
+
                 stage('Docker Build Image') {
                     steps {
                         script {
@@ -188,5 +199,3 @@ def call(String imageName, String environment, String imageTag, String branch) {
         }
     }
 }
-
-
