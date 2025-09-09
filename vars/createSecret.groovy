@@ -20,7 +20,7 @@ def call(String agentName, String environment, String helmReleaseName,
 
             stage('Deploy Helm Chart with Secrets') {
                 withCredentials([file(credentialsId: secretYamlCredentialsId, variable: 'RAW_SECRET_YAML')]) {
-                    sh """
+                    bat """
                         set +x  # 🔒 Hide sensitive output
 
                         echo "🚀 Deploying Helm release '${helmReleaseName}' in namespace '${helmNamespace}'..."
@@ -42,7 +42,7 @@ def call(String agentName, String environment, String helmReleaseName,
             }
 
             stage('Check Deployment Rollout') {
-                sh """
+                bat """
                     kubectl rollout status deployment/${helmReleaseName} \
                         -n ${helmNamespace} --timeout=300s
                 """
