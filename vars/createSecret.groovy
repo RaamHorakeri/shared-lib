@@ -23,20 +23,11 @@ def call(String agentName, String environment, String helmReleaseName,
             // Stage 2: Deploy Helm Chart with Secrets
             def credentialsList = [file(credentialsId: secretYamlCredentialsId, variable: 'RAW_SECRET_YAML')]
             if (kubeconfigSecretId) {
-                credentialsList << string(credentialsId: kubeconfigSecretId, variable: 'KUBECONFIG_CONTENT')
+                credentialsList << file(credentialsId: kubeconfigSecretId, variable: 'KUBECONFIG')
             }
 
             stage('Deploy Helm Chart with Secrets') {
                 withCredentials(credentialsList) {
-                    if (kubeconfigSecretId) {
-                        // Write the secret kubeconfig to a temporary file
-                        bat """
-                        echo %KUBECONFIG_CONTENT% > "%WORKSPACE%\\kubeconfig-temp"
-                        set KUBECONFIG=%WORKSPACE%\\kubeconfig-temp
-                        """
-                    }
-
-                    // Windows batch syntax for Helm deploy
                     bat """
                     REM Set chart directory from secret YAML path
                     for %%I in ("${secretYamlPath}") do set CHART_DIR=%%~dpI
