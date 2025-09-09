@@ -28,23 +28,47 @@ def call(String agentName, String environment, String helmReleaseName,
 
             stage('Deploy Helm Chart with Secrets') {
                 withCredentials(credentialsList) {
-                    bat """
-                    REM Set chart directory from secret YAML path
-                    for %%I in ("${secretYamlPath}") do set CHART_DIR=%%~dpI
+                    if (kubeconfigSecretId) {
+                        withEnv(["KUBECONFIG=%KUBECONFIG%"]) {
+                            bat """
+                            REM Set chart directory from secret YAML path
+                            for %%I in ("${secretYamlPath}") do set CHART_DIR=%%~dpI
+                            REM Remove trailing backslash if present
+                            set CHART_DIR=%CHART_DIR:~0,-1%
 
-                    echo 📂 Using chart directory: %CHART_DIR%
-                    echo 🚀 Deploying Helm release '${helmReleaseName}' in namespace '${helmNamespace}'...
+                            echo 📂 Using chart directory: %CHART_DIR%
+                            echo 🚀 Deploying Helm release '${helmReleaseName}' in namespace '${helmNamespace}'...
 
-                    helm upgrade --install ${helmReleaseName} "%CHART_DIR%" ^
-                        --namespace ${helmNamespace} ^
-                        --create-namespace ^
-                        --atomic ^
-                        --wait ^
-                        -f "%RAW_SECRET_YAML%" ^
-                        --set environment=${environment}
+                            helm upgrade --install ${helmReleaseName} "%CHART_DIR%" ^
+                                --namespace ${helmNamespace} ^
+                                --create-namespace ^
+                                --atomic ^
+                                --wait ^
+                                -f "%RAW_SECRET_YAML%" ^
+                                --set environment=${environment}
 
-                    kubectl rollout status deployment/${helmReleaseName} -n ${helmNamespace} --timeout=300s
-                    """
+                            kubectl rollout status deployment/${helmReleaseName} -n ${helmNamespace} --timeout=300s
+                            """
+                        }
+                    } else {
+                        bat """
+                        for %%I in ("${secretYamlPath}") do set CHART_DIR=%%~dpI
+                        set CHART_DIR=%CHART_DIR:~0,-1%
+
+                        echo 📂 Using chart directory: %CHART_DIR%
+                        echo 🚀 Deploying Helm release '${helmReleaseName}' in namespace '${helmNamespace}'...
+
+                        helm upgrade --install ${helmReleaseName} "%CHART_DIR%" ^
+                            --namespace ${helmNamespace} ^
+                            --create-namespace ^
+                            --atomic ^
+                            --wait ^
+                            -f "%RAW_SECRET_YAML%" ^
+                            --set environment=${environment}
+
+                        kubectl rollout status deployment/${helmReleaseName} -n ${helmNamespace} --timeout=300s
+                        """
+                    }
                 }
             }
 
