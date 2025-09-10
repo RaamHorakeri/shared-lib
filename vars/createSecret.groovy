@@ -20,22 +20,23 @@ def call(String agentName, String environment, String helmReleaseName,
 
             def credentialsList = [file(credentialsId: secretYamlCredentialsId, variable: 'RAW_SECRET_YAML')]
 
-            stage('Deploy Helm Chart and Verify Secret') {
+            stage('Deploy Secret via Helm') {
                 withCredentials(credentialsList) {
                     sh """
-                    # Set chart directory from secret YAML path
-                    for file in "${secretYamlPath}"; do CHART_DIR=\$(dirname "\$file"); done
+                    # Determine chart directory from secretYamlPath
+                    CHART_DIR=\$(dirname "${secretYamlPath}")
                     CHART_DIR=\${CHART_DIR%/}
 
                     echo "📂 Using chart directory: \$CHART_DIR"
-                    echo "🚀 Deploying Helm release '${helmReleaseName}' in namespace '${helmNamespace}'..."
+                    echo "🚀 Deploying Secret using Helm release '${helmReleaseName}' in namespace '${helmNamespace}'..."
 
                     helm upgrade --install ${helmReleaseName} "\$CHART_DIR" \\
                         --namespace ${helmNamespace} \\
                         --create-namespace \\
                         --atomic \\
                         --wait \\
-                        -f "\$RAW_SECRET_YAML" \\
+                        -f "$RAW_SECRET_YAML" \\
+                        --set secret.enabled=true \\
                         --set environment=${environment}
 
                     echo "🔎 Checking if Secret is created..."
