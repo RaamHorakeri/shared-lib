@@ -1,60 +1,70 @@
 def call(String agentName, String environment, String helmReleaseName,
-         String helmNamespace, String chartRepoUrl, String chartRepoBranch,
-         String chartRepoCredentialsId, String secretYamlPath, String secretYamlCredentialsId) {
+         String helmNamespace, String chartRepoUrl, String chartRepoBranch, String chartCloneDir,
+         String chartPathInsideRepo, String chartRepoCredentialsId, String secretYamlCredentialsId) {
 
     node(agentName) {
         def buildFailed = false
 
         try {
             stage('Checkout Helm Chart Repo') {
-                echo "🔁 Checking out Helm repo '${chartRepoUrl}' branch '${chartRepoBranch}'"
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: "*/${chartRepoBranch}"]],
-                    userRemoteConfigs: [[
-                        url: chartRepoUrl,
-                        credentialsId: chartRepoCredentialsId
-                    ]]
-                ])
+                dir(chartCloneDir) {
+                    echo "🔁 Checking out Helm repo '${chartRepoUrl}' branch '${chartRepoBranch}'"
+                    checkoutFromGit(chartRepoBranch, chartRepoUrl, chartRepoCredentialsId)
+                }
             }
 
-            def credentialsList = [file(credentialsId: secretYamlCredentialsId, variable: 'RAW_SECRET_YAML')]
+            stage('Deploy Common Resources') {
+                dir(chartCloneDir) {
+                    withCredentials([file(credentialsId: 'eskeon-product-k8s-secrets', variable: 'RAW_SECRET_YAML')]) {
+                        echo "🔐 Reading custom secret YAML and converting to valid Kubernetes Secret..."
 
-            stage('Deploy Secret via Helm') {
-                withCredentials(credentialsList) {
-                    sh """
-                    # Determine chart directory from secretYamlPath
-                    CHART_DIR=\$(dirname "${secretYamlPath}")
-                    CHART_DIR=\${CHART_DIR%/}
+                        sh """
+                            cp \$RAW_SECRET_YAML converted-secret.yaml
 
-                    echo "📂 Using chart directory: \$CHART_DIR"
-                    echo "🚀 Deploying Secret using Helm release '${helmReleaseName}' in namespace '${helmNamespace}'..."
+                            # Install yq if not already present
+                            if ! command -v yq >/dev/null 2>&1; then
+                              echo "🔧 Installing yq..."
+                              wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+                              chmod +x /usr/local/bin/yq
+                            fi
 
-                    helm upgrade --install ${helmReleaseName} "\$CHART_DIR" \\
-                        --namespace ${helmNamespace} \\
-                        --create-namespace \\
-                        --atomic \\
-                        --wait \\
-                        -f "$RAW_SECRET_YAML" \\
-                        --set secret.enabled=true \\
-                        --set environment=${environment}
+                            # Extract name and keys
+                            secret_name=\$(yq e '.secret.name' converted-secret.yaml)
+                            keys=\$(yq e '.secret.data | keys | .[]' converted-secret.yaml)
 
-                    echo "🔎 Checking if Secret is created..."
-                    SECRET_NAME=\$(kubectl get secret -n ${helmNamespace} -l app.kubernetes.io/instance=${helmReleaseName} -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+                            # Build the Kubernetes Secret YAML
+                            echo "apiVersion: v1" > final-secret.yaml
+                            echo "kind: Secret" >> final-secret.yaml
+                            echo "metadata:" >> final-secret.yaml
+                            echo "  name: \$secret_name" >> final-secret.yaml
+                            echo "  namespace: ${helmNamespace}" >> final-secret.yaml
+                            echo "type: Opaque" >> final-secret.yaml
+                            echo "data:" >> final-secret.yaml
 
-                    if [ -n "\$SECRET_NAME" ]; then
-                      echo "✅ Secret '\$SECRET_NAME' created successfully in namespace '${helmNamespace}'."
-                    else
-                      echo "❌ No Secret found for Helm release '${helmReleaseName}' in namespace '${helmNamespace}'."
-                      exit 1
-                    fi
-                    """
+                            for key in \$keys; do
+                              value=\$(yq e ".secret.data.\$key" converted-secret.yaml)
+                              b64=\$(echo -n "\$value" | base64 | tr -d '\\n')
+                              echo "  \$key: \$b64" >> final-secret.yaml
+                            done
+
+                            echo "✅ Final base64-encoded secret:"
+                            cat final-secret.yaml
+
+                            # Apply the Secret
+                            kubectl apply -f final-secret.yaml
+
+                            # Run Helm install/upgrade
+                            echo "🚀 Deploying Helm chart with additional config..."
+                            helm upgrade --install ${helmReleaseName} ./${chartPathInsideRepo}/commons-svc \\
+                              --namespace ${helmNamespace} -f \$RAW_SECRET_YAML
+                        """
+                    }
                 }
             }
 
         } catch (err) {
             buildFailed = true
-            echo "❌ Deployment failed: ${err.getMessage()}"
+            echo "❌ Error occurred: ${err.getMessage()}"
             throw err
         } finally {
             stage('Post Actions') {
@@ -63,6 +73,7 @@ def call(String agentName, String environment, String helmReleaseName,
                 } else {
                     echo '✅ Deployment succeeded.'
                 }
+
                 cleanWs()
             }
         }
