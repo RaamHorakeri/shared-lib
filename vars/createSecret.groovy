@@ -20,7 +20,7 @@ def call(String agentName, String environment, String helmReleaseName,
 
             def credentialsList = [file(credentialsId: secretYamlCredentialsId, variable: 'RAW_SECRET_YAML')]
 
-            stage('Deploy Helm Chart with Secrets') {
+            stage('Deploy Helm Chart and Verify Secret') {
                 withCredentials(credentialsList) {
                     sh """
                     # Set chart directory from secret YAML path
@@ -38,21 +38,14 @@ def call(String agentName, String environment, String helmReleaseName,
                         -f "\$RAW_SECRET_YAML" \\
                         --set environment=${environment}
 
-                    # Try to detect Deployment first
-                    DEPLOY_NAME=\$(kubectl get deploy -n ${helmNamespace} -l app.kubernetes.io/instance=${helmReleaseName} -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+                    echo "🔎 Checking if Secret is created..."
+                    SECRET_NAME=\$(kubectl get secret -n ${helmNamespace} -l app.kubernetes.io/instance=${helmReleaseName} -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
 
-                    if [ -z "\$DEPLOY_NAME" ]; then
-                      echo "⚠️ No Deployment found for '${helmReleaseName}', checking StatefulSets..."
-                      DEPLOY_NAME=\$(kubectl get sts -n ${helmNamespace} -l app.kubernetes.io/instance=${helmReleaseName} -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
-                      if [ -n "\$DEPLOY_NAME" ]; then
-                        echo "✅ Found StatefulSet: \$DEPLOY_NAME"
-                        kubectl rollout status sts/\$DEPLOY_NAME -n ${helmNamespace} --timeout=300s
-                      else
-                        echo "⚠️ No Deployment or StatefulSet found for release '${helmReleaseName}'. Skipping rollout status check."
-                      fi
+                    if [ -n "\$SECRET_NAME" ]; then
+                      echo "✅ Secret '\$SECRET_NAME' created successfully in namespace '${helmNamespace}'."
                     else
-                      echo "✅ Found Deployment: \$DEPLOY_NAME"
-                      kubectl rollout status deploy/\$DEPLOY_NAME -n ${helmNamespace} --timeout=300s
+                      echo "❌ No Secret found for Helm release '${helmReleaseName}' in namespace '${helmNamespace}'."
+                      exit 1
                     fi
                     """
                 }
