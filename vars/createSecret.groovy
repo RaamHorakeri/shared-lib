@@ -15,7 +15,8 @@ def call(String agentName, String environment, String helmReleaseName,
 
             stage('Deploy Common Resources') {
                 dir(chartCloneDir) {
-                    withCredentials([file(credentialsId: 'eskeon-product-k8s-secrets', variable: 'RAW_SECRET_YAML')]) {
+                    // ✅ Use the credentials ID passed as parameter
+                    withCredentials([file(credentialsId: secretYamlCredentialsId, variable: 'RAW_SECRET_YAML')]) {
                         echo "🔐 Reading custom secret YAML and converting to valid Kubernetes Secret..."
 
                         sh """
