@@ -82,51 +82,47 @@
 // }
 
 def call(String agentName, String environment, String helmReleaseName,
-         String helmNamespace, String chartRepoUrl, String chartRepoBranch, String chartCloneDir,
-         String chartPathInsideRepo, String chartRepoCredentialsId, String secretYamlCredentialsId) {
+         String helmNamespace, String chartPathInsideRepo, String secretYamlCredentialsId) {
 
     node(agentName) {
         def buildFailed = false
 
         try {
-            stage('Checkout Helm Chart Repo') {
-                dir(chartCloneDir) {
-                    echo "🔁 Checking out Helm repo '${chartRepoUrl}' branch '${chartRepoBranch}'"
-                    checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: "*/${chartRepoBranch}"]],
-                        userRemoteConfigs: [[
-                            url: chartRepoUrl,
-                            credentialsId: chartRepoCredentialsId
-                        ]]
-                    ])
+            stage('Create Kubernetes Secret') {
+                withCredentials([file(credentialsId: secretYamlCredentialsId, variable: 'RAW_SECRET_YAML')]) {
+                    echo "🔐 Creating/Updating Kubernetes Secret from Jenkins secret file..."
+
+                    sh """
+                        # Apply the secret
+                        kubectl apply -f \$RAW_SECRET_YAML -n ${helmNamespace}
+
+                        echo "✅ Secret applied successfully in namespace '${helmNamespace}'"
+                    """
                 }
             }
 
-            stage('Deploy Secret and Helm') {
-                dir(chartCloneDir) {
-                    withCredentials([file(credentialsId: secretYamlCredentialsId, variable: 'RAW_SECRET_YAML')]) {
-                        echo "🔐 Applying Kubernetes Secret from Jenkins secret file..."
+            stage('Verify Kubernetes Secret') {
+                sh """
+                    echo "🔎 Verifying Secret in namespace '${helmNamespace}'..."
+                    kubectl get secret -n ${helmNamespace}
+                    kubectl describe secret -n ${helmNamespace} || echo "⚠️ Secret description failed!"
+                """
+            }
 
-                        sh """
-                            # Apply the secret directly
-                            kubectl apply -f \$RAW_SECRET_YAML -n ${helmNamespace}
+            stage('Deploy Helm Release') {
+                withCredentials([file(credentialsId: secretYamlCredentialsId, variable: 'RAW_SECRET_YAML')]) {
+                    sh """
+                        echo "🚀 Deploying Helm release '${helmReleaseName}' in namespace '${helmNamespace}'..."
+                        helm upgrade --install ${helmReleaseName} ${chartPathInsideRepo} \\
+                            --namespace ${helmNamespace} \\
+                            --create-namespace \\
+                            --atomic \\
+                            --wait \\
+                            -f \$RAW_SECRET_YAML \\
+                            --set environment=${environment}
 
-                            echo "✅ Secret applied successfully in namespace '${helmNamespace}'"
-
-                            # Deploy Helm chart
-                            echo "🚀 Deploying Helm release '${helmReleaseName}' in namespace '${helmNamespace}'..."
-                            helm upgrade --install ${helmReleaseName} ./${chartPathInsideRepo} \\
-                                --namespace ${helmNamespace} \\
-                                --create-namespace \\
-                                --atomic \\
-                                --wait \\
-                                -f \$RAW_SECRET_YAML \\
-                                --set environment=${environment}
-
-                            echo "✅ Helm release '${helmReleaseName}' deployed successfully"
-                        """
-                    }
+                        echo "✅ Helm release '${helmReleaseName}' deployed successfully"
+                    """
                 }
             }
 
