@@ -109,33 +109,16 @@ def call(String agentName, String environment, String helmReleaseName,
                 """
             }
 
-            stage('Deploy Helm Release') {
-                withCredentials([file(credentialsId: secretYamlCredentialsId, variable: 'RAW_SECRET_YAML')]) {
-                    sh """
-                        echo "🚀 Deploying Helm release '${helmReleaseName}' in namespace '${helmNamespace}'..."
-                        helm upgrade --install ${helmReleaseName} ${chartPathInsideRepo} \\
-                            --namespace ${helmNamespace} \\
-                            --create-namespace \\
-                            --atomic \\
-                            --wait \\
-                            -f \$RAW_SECRET_YAML \\
-                            --set environment=${environment}
-
-                        echo "✅ Helm release '${helmReleaseName}' deployed successfully"
-                    """
-                }
-            }
-
         } catch (err) {
             buildFailed = true
-            echo "❌ Deployment failed: ${err.getMessage()}"
+            echo "❌ Secret deployment failed: ${err.getMessage()}"
             throw err
         } finally {
             stage('Post Actions') {
                 if (buildFailed) {
-                    echo '📛 Deployment failed!'
+                    echo '📛 Secret update failed!'
                 } else {
-                    echo '✅ Deployment succeeded.'
+                    echo '✅ Secret update succeeded.'
                 }
                 cleanWs()
             }
