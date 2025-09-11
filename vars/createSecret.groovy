@@ -81,8 +81,7 @@
 //     }
 // }
 
-def call(String agentName, String environment, String helmReleaseName,
-         String helmNamespace, String chartPathInsideRepo, String secretYamlCredentialsId) {
+def call(String agentName, String environment, String namespace, String secretYamlCredentialsId) {
 
     node(agentName) {
         def buildFailed = false
@@ -94,18 +93,18 @@ def call(String agentName, String environment, String helmReleaseName,
 
                     sh """
                         # Apply the secret
-                        kubectl apply -f \$RAW_SECRET_YAML -n ${helmNamespace}
+                        kubectl apply -f \$RAW_SECRET_YAML -n ${namespace}
 
-                        echo "✅ Secret applied successfully in namespace '${helmNamespace}'"
+                        echo "✅ Secret applied successfully in namespace '${namespace}'"
                     """
                 }
             }
 
             stage('Verify Kubernetes Secret') {
                 sh """
-                    echo "🔎 Verifying Secret in namespace '${helmNamespace}'..."
-                    kubectl get secret -n ${helmNamespace}
-                    kubectl describe secret -n ${helmNamespace} || echo "⚠️ Secret description failed!"
+                    echo "🔎 Verifying Secret in namespace '${namespace}'..."
+                    kubectl get secret -n ${namespace}
+                    kubectl describe secret -n ${namespace} || echo "⚠️ Secret description failed!"
                 """
             }
 
