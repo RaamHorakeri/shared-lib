@@ -37,6 +37,7 @@ def call(String agentName, String imageRegistry, String imageName, String imageT
                     sh """
                     echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
                     docker push ${fullImage}
+                    docker logout
                     """
                 }
             }
@@ -70,11 +71,14 @@ def call(String agentName, String imageRegistry, String imageName, String imageT
                         cp \$GIT_CONFIG_FILE ~/.gitconfig
                         export GIT_SSH_COMMAND="ssh -i \$SSH_KEY -o StrictHostKeyChecking=no"
 
+                        git checkout ${manifestBranch} || git checkout -b ${manifestBranch}
+                        git pull origin ${manifestBranch}
+
                         sed -i 's|repository:.*|repository: "${imageRegistry}/${imageName}"|g' ${valuesFile}
                         sed -i 's|tag:.*|tag: "${finalTag}"|g' ${valuesFile}
 
                         git add ${valuesFile}
-                        git commit -m "Updated image ${finalTag}" || true
+                        git commit -m "Updated image ${finalTag}" || echo "No changes to commit"
                         git push origin ${manifestBranch}
                         """
                     }
