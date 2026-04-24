@@ -1,5 +1,6 @@
 def call(String agentName, String imageRegistry, String imageName, String imageTag, String appRepo, String appBranch, String appRepoCredentialsId, String manifestRepo,
-         String manifestBranch, String manifestRepoCredentialsId, String manifestCloneDir, String valuesFile, String dockerCredentialsId, String gitConfigCredentialsId, String k8sDeploymentName, String k8sNamespace) {
+         String manifestBranch, String manifestRepoCredentialsId, String manifestCloneDir, String valuesFile, String dockerCredentialsId, String gitConfigCredentialsId,
+         String k8sDeploymentName, String k8sNamespace, String k8sContext, String k8sCluster) {
 
     node(agentName) {
 
@@ -8,6 +9,17 @@ def call(String agentName, String imageRegistry, String imageName, String imageT
         def buildFailed = false
 
         try {
+
+            stage('Set Kubernetes Context') {
+                sh """
+                echo "Using Kubernetes Cluster : ${k8sCluster}"
+                echo "Using Kubernetes Context : ${k8sContext}"
+
+                kubectl config get-contexts
+                kubectl config use-context ${k8sContext}
+                kubectl config current-context
+                """
+            }
 
             stage('Checkout Application Repo') {
                 echo "Checking out source code..."
@@ -87,7 +99,7 @@ def call(String agentName, String imageRegistry, String imageName, String imageT
 
             stage('Wait For Rollout Completion') {
                 sh """
-                kubectl rollout status deployment/${k8sDeploymentName} -n ${k8sNamespace} --timeout=300s
+                kubectl --context=${k8sContext} rollout status deployment/${k8sDeploymentName} -n ${k8sNamespace} --timeout=300s
                 """
             }
 
@@ -97,9 +109,9 @@ def call(String agentName, String imageRegistry, String imageName, String imageT
 
             stage('Verify Latest Image Deployed') {
                 sh """
-                kubectl get pods -n ${k8sNamespace}
+                kubectl --context=${k8sContext} get pods -n ${k8sNamespace}
 
-                DEPLOYED_IMAGE=\$(kubectl get deployment ${k8sDeploymentName} -n ${k8sNamespace} -o jsonpath='{.spec.template.spec.containers[0].image}')
+                DEPLOYED_IMAGE=\$(kubectl --context=${k8sContext} get deployment ${k8sDeploymentName} -n ${k8sNamespace} -o jsonpath='{.spec.template.spec.containers[0].image}')
 
                 echo "Expected Image : ${fullImage}"
                 echo "Actual Image   : \$DEPLOYED_IMAGE"
