@@ -135,6 +135,7 @@ def call(String agentName, String imageRegistry, String imageName, String imageT
             echo "Deployment failed: ${err.getMessage()}"
             throw err
 
+         
         } finally {
 
             stage('Post Actions') {
