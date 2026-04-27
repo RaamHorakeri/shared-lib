@@ -163,8 +163,14 @@ def call(String agentName, String imageRegistry, String imageName, String imageT
                     def committer   = env.committer ?: env.gitCommitter ?: "Unknown"
                     def commitId    = env.commitId ?: "N/A"
                     def commitMsg   = env.commitMsg ?: "No message"
-                    def duration    = currentBuild.durationString ?: "N/A"
-                    def timestamp   = new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone('Asia/Kolkata'))
+
+                    def millis  = currentBuild.duration ?: 0
+                    def seconds = (millis / 1000) as int
+                    def minutes = (seconds / 60) as int
+                    seconds = seconds % 60
+                    def duration = "${minutes} min ${seconds} sec"
+
+                    def timestamp = new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone('Asia/Kolkata'))
 
                     def status
                     switch (buildResult) {
