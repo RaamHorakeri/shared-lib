@@ -22,7 +22,6 @@ def call(String agentName, String imageRegistry, String imageName, String imageT
             }
 
             stage('Checkout Application Repo') {
-                echo "Checking out source code..."
                 checkout([
                     $class: 'GitSCM',
                     branches: [[name: appBranch]],
@@ -40,20 +39,16 @@ def call(String agentName, String imageRegistry, String imageName, String imageT
                 def scmCause  = currentBuild.rawBuild.getCause(hudson.triggers.SCMTrigger$SCMTriggerCause)
 
                 if (userCause) {
-                    env.triggerType = "Jenkins"
-                    env.committer   = userCause.getUserName() ?: env.gitCommitter
-                    env.commitMsg   = "Manually triggered from Jenkins"
+                    env.committer = userCause.getUserName() ?: env.gitCommitter
+                    env.commitMsg = "Manually triggered from Jenkins"
                 } else if (scmCause) {
-                    env.triggerType = "Git"
-                    env.committer   = env.gitCommitter
+                    env.committer = env.gitCommitter
                 } else {
-                    env.triggerType = "Unknown"
-                    env.committer   = env.gitCommitter
+                    env.committer = env.gitCommitter
                 }
             }
 
             stage('Build Docker Image') {
-                echo "Building image ${fullImage}"
                 sh "docker build -t ${fullImage} ."
             }
 
@@ -89,10 +84,7 @@ def call(String agentName, String imageRegistry, String imageName, String imageT
             stage('Update values.yaml and Push') {
                 dir(manifestCloneDir) {
                     withCredentials([
-                        file(
-                            credentialsId: gitConfigCredentialsId,
-                            variable: 'GIT_CONFIG_FILE'
-                        ),
+                        file(credentialsId: gitConfigCredentialsId, variable: 'GIT_CONFIG_FILE'),
                         sshUserPrivateKey(
                             credentialsId: manifestRepoCredentialsId,
                             keyFileVariable: 'SSH_KEY'
@@ -128,16 +120,9 @@ def call(String agentName, String imageRegistry, String imageName, String imageT
 
             stage('Verify Latest Image Deployed') {
                 sh """
-                kubectl --context=${k8sContext} get pods -n ${k8sNamespace}
-
                 DEPLOYED_IMAGE=\$(kubectl --context=${k8sContext} get deployment ${k8sDeploymentName} -n ${k8sNamespace} -o jsonpath='{.spec.template.spec.containers[0].image}')
 
-                echo "Expected Image : ${fullImage}"
-                echo "Actual Image   : \$DEPLOYED_IMAGE"
-
-                if [ "\$DEPLOYED_IMAGE" = "${fullImage}" ]; then
-                    echo "Latest image deployed successfully."
-                else
+                if [ "\$DEPLOYED_IMAGE" != "${fullImage}" ]; then
                     echo "Old image still deployed."
                     exit 1
                 fi
@@ -152,15 +137,15 @@ def call(String agentName, String imageRegistry, String imageName, String imageT
 
             buildFailed = true
             currentBuild.result = "FAILURE"
-            echo "Deployment failed: ${err.getMessage()}"
             throw err
 
         } finally {
 
             stage('Post Actions') {
                 script {
+
                     def buildResult = currentBuild.result ?: currentBuild.currentResult ?: (buildFailed ? "FAILURE" : "SUCCESS")
-                    def committer   = env.committer ?: env.gitCommitter ?: "Unknown"
+                    def committer   = env.committer ?: "Unknown"
                     def commitId    = env.commitId ?: "N/A"
                     def commitMsg   = env.commitMsg ?: "No message"
 
@@ -172,24 +157,24 @@ def call(String agentName, String imageRegistry, String imageName, String imageT
 
                     def timestamp = new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone('Asia/Kolkata'))
 
-                    def status
-                    switch (buildResult) {
-                        case "SUCCESS": status = "✅ SUCCESS"; break
-                        case "FAILURE": status = "❌ FAILURE"; break
-                        case "ABORTED": status = "🚫 ABORTED"; break
-                        default:        status = "⚠️ ${buildResult}"; break
-                    }
+                    def status = (buildResult == "SUCCESS") ? "✅ SUCCESS" :
+                                 (buildResult == "FAILURE") ? "❌ FAILURE" :
+                                 (buildResult == "ABORTED") ? "🚫 ABORTED" :
+                                 "⚠️ ${buildResult}"
 
                     currentBuild.displayName = "#${env.BUILD_NUMBER} - ${appBranch}"
+
                     currentBuild.description = """${status}<br>
-🔥 Triggered by: ${committer}<br>
-🌿 Branch: ${appBranch}<br>
-🧱 Commit: ${commitId}<br>
-💬 Message: ${commitMsg}<br>
-📦 Image: ${fullImage}<br>
-🔢 Build Number: #${env.BUILD_NUMBER}<br>
-⏱ Duration: ${duration}<br>
-🕒 Time: ${timestamp}"""
+🔥 Triggered by: <strong>${committer}</strong><br>
+🌿 Branch: <strong>${appBranch}</strong><br>
+🧱 Commit: <strong>${commitId}</strong><br>
+💬 Message: <strong>${commitMsg}</strong><br>
+📦 Image: <strong>${fullImage}</strong><br>
+🔢 Build Number: <strong>#${env.BUILD_NUMBER}</strong><br>
+⏱ Duration: <strong>${duration}</strong><br>
+🕒 Time: <strong>${timestamp}</strong>"""
+
+                    def teamsMsg = currentBuild.description
 
                     def webhookValue = ""
                     try {
@@ -204,15 +189,13 @@ def call(String agentName, String imageRegistry, String imageName, String imageT
                         if (webhookValue?.trim()) {
                             office365ConnectorSend(
                                 webhookUrl: webhookValue,
-                                message: currentBuild.description,
+                                message: teamsMsg,
                                 status: buildResult
                             )
                         }
                     } catch (Exception ex) {
                         echo "Teams notification skipped."
                     }
-
-                    echo "Build completed with status: ${buildResult}"
 
                     cleanWs()
                 }
