@@ -182,14 +182,14 @@ def call(String agentName, String imageRegistry, String imageName, String imageT
 
                     currentBuild.displayName = "#${env.BUILD_NUMBER} - ${appBranch}"
                     currentBuild.description = """${status}<br>
-🔥 Triggered by: <b>${committer}</b><br>
-🌿 Branch:       <b>${appBranch}</b><br>
-🧱 Commit:       <b>${commitId}</b><br>
-💬 Message:      <b>${commitMsg}</b><br>
-📦 Image:        <b>${fullImage}</b><br>
-🔢 Build Number: <b>#${env.BUILD_NUMBER}</b><br>
-⏱ Duration:     <b>${duration}</b><br>
-🕒 Time:         <b>${timestamp}</b>"""
+🔥 Triggered by: ${committer}<br>
+🌿 Branch: ${appBranch}<br>
+🧱 Commit: ${commitId}<br>
+💬 Message: ${commitMsg}<br>
+📦 Image: ${fullImage}<br>
+🔢 Build Number: #${env.BUILD_NUMBER}<br>
+⏱ Duration: ${duration}<br>
+🕒 Time: ${timestamp}"""
 
                     def webhookValue = ""
                     try {
@@ -200,12 +200,16 @@ def call(String agentName, String imageRegistry, String imageName, String imageT
                         webhookValue = teamsWebhookUrl
                     }
 
-                    if (webhookValue?.trim()) {
-                        office365ConnectorSend(
-                            webhookUrl: webhookValue,
-                            message: currentBuild.description,
-                            status: buildResult
-                        )
+                    try {
+                        if (webhookValue?.trim()) {
+                            office365ConnectorSend(
+                                webhookUrl: webhookValue,
+                                message: currentBuild.description,
+                                status: buildResult
+                            )
+                        }
+                    } catch (Exception ex) {
+                        echo "Teams notification skipped."
                     }
 
                     echo "Build completed with status: ${buildResult}"
